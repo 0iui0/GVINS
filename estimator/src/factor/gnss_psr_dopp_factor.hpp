@@ -23,27 +23,30 @@ using namespace gnss_comm;
 **  parameters[7]: anchor point's ECEF coordinate
 **  
  */
-class GnssPsrDoppFactor : public ceres::SizedCostFunction<2, 7, 9, 7, 9, 1, 1, 1, 3>
-{
-    public: 
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-        GnssPsrDoppFactor() = delete;
-        GnssPsrDoppFactor(const ObsPtr &_obs, const EphemBasePtr &_ephem, std::vector<double> &_iono_paras, 
-            const double _ratio);
-        virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
-        bool check_gradients(const std::vector<const double*> &parameters) const;
-    private:
-        const ObsPtr obs;
-        const EphemBasePtr ephem;
-        const std::vector<double> &iono_paras;
-        double ratio;
-        int freq_idx;
-        double freq;
-        Eigen::Vector3d sv_pos;
-        Eigen::Vector3d sv_vel;
-        double svdt, svddt, tgd;
-        double pr_uura, dp_uura;
-        double relative_sqrt_info;
+class GnssPsrDoppFactor : public ceres::SizedCostFunction<2, 7, 9, 7, 9, 1, 1, 1, 3> {
+public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    GnssPsrDoppFactor() = delete;
+
+    GnssPsrDoppFactor(const ObsPtr &_obs, const EphemBasePtr &_ephem, std::vector<double> &_iono_paras,
+                      const double _ratio);
+
+    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
+
+    bool check_gradients(const std::vector<const double *> &parameters) const;
+
+private:
+    const ObsPtr obs;
+    const EphemBasePtr ephem;
+    const std::vector<double> &iono_paras;
+    double ratio;
+    int freq_idx;
+    double freq;
+    Eigen::Vector3d sv_pos;
+    Eigen::Vector3d sv_vel;
+    double svdt, svddt, tgd;
+    double pr_uura, dp_uura;
+    double relative_sqrt_info;
 };
 
 #endif

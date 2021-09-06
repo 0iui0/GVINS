@@ -12,15 +12,17 @@
 **  parameters[2]: rev_ddt(t)   in light travelling distance per second (m/s)
 **  parameters[3]: rev_ddt(t+1) in light travelling distance per second (m/s)
  */
-class DtDdtFactor : public ceres::SizedCostFunction<1, 1, 1, 1, 1>
-{
-    public: 
-        DtDdtFactor() = delete;
-        DtDdtFactor(const double delta_t_);
-        virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
-    private:
-        double delta_t;
-        double dt_info_coeff;
+class DtDdtFactor : public ceres::SizedCostFunction<1, 1, 1, 1, 1> {
+public:
+    DtDdtFactor() = delete;
+
+    DtDdtFactor(const double delta_t_);
+
+    virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
+
+private:
+    double delta_t;
+    double dt_info_coeff;
 };
 
 #endif

@@ -33,55 +33,71 @@
 
 using namespace gnss_comm;
 
-class Estimator
-{
-  public:
+class Estimator {
+public:
     Estimator();
 
     void setParameter();
 
     // interface
     void processIMU(double t, const Vector3d &linear_acceleration, const Vector3d &angular_velocity);
-    void processGNSS(const std::vector<ObsPtr> &gnss_mea);
+
+    void processGNSS(const std::vector <ObsPtr> &gnss_mea);
+
     void inputEphem(EphemBasePtr ephem_ptr);
+
     void inputIonoParams(double ts, const std::vector<double> &iono_params);
+
     void inputGNSSTimeDiff(const double t_diff);
 
-    void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const std_msgs::Header &header);
+    void processImage(const map<int, vector<pair < int, Eigen::Matrix < double, 7, 1>>
+
+    >> &image,
+    const std_msgs::Header &header
+    );
 
     // internal
     void clearState();
+
     bool initialStructure();
+
     bool visualInitialAlign();
+
     // GNSS related
     bool GNSSVIAlign();
 
     void updateGNSSStatistics();
 
     bool relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l);
+
     void slideWindow();
+
     void solveOdometry();
+
     void slideWindowNew();
+
     void slideWindowOld();
+
     void optimization();
+
     void vector2double();
+
     void double2vector();
+
     bool failureDetection();
 
-    enum SolverFlag
-    {
+    enum SolverFlag {
         INITIAL,
         NON_LINEAR
     };
 
-    enum MarginalizationFlag
-    {
+    enum MarginalizationFlag {
         MARGIN_OLD = 0,
         MARGIN_SECOND_NEW = 1
     };
 
     SolverFlag solver_flag;
-    MarginalizationFlag  marginalization_flag;
+    MarginalizationFlag marginalization_flag;
     Vector3d g;
     // MatrixXd Ap[2];
     // VectorXd bp[2];
@@ -104,24 +120,24 @@ class Estimator
     Vector3d acc_0, gyr_0;
 
     vector<double> dt_buf[(WINDOW_SIZE + 1)];
-    vector<Vector3d> linear_acceleration_buf[(WINDOW_SIZE + 1)];
-    vector<Vector3d> angular_velocity_buf[(WINDOW_SIZE + 1)];
+    vector <Vector3d> linear_acceleration_buf[(WINDOW_SIZE + 1)];
+    vector <Vector3d> angular_velocity_buf[(WINDOW_SIZE + 1)];
 
     // GNSS related
     bool gnss_ready;
     Eigen::Vector3d anc_ecef;
     Eigen::Matrix3d R_ecef_enu;
     double yaw_enu_local;
-    std::vector<ObsPtr> gnss_meas_buf[(WINDOW_SIZE+1)];
-    std::vector<EphemBasePtr> gnss_ephem_buf[(WINDOW_SIZE+1)];
+    std::vector <ObsPtr> gnss_meas_buf[(WINDOW_SIZE + 1)];
+    std::vector <EphemBasePtr> gnss_ephem_buf[(WINDOW_SIZE + 1)];
     std::vector<double> latest_gnss_iono_params;
-    std::map<uint32_t, std::vector<EphemBasePtr>> sat2ephem;
-    std::map<uint32_t, std::map<double, size_t>> sat2time_index;
-    std::map<uint32_t, uint32_t> sat_track_status;
+    std::map <uint32_t, std::vector<EphemBasePtr>> sat2ephem;
+    std::map <uint32_t, std::map<double, size_t>> sat2time_index;
+    std::map <uint32_t, uint32_t> sat_track_status;
     double para_anc_ecef[3];
     double para_yaw_enu_local[1];
-    double para_rcv_dt[(WINDOW_SIZE+1)*4];
-    double para_rcv_ddt[WINDOW_SIZE+1];
+    double para_rcv_dt[(WINDOW_SIZE + 1) * 4];
+    double para_rcv_ddt[WINDOW_SIZE + 1];
     // GNSS statistics
     double diff_t_gnss_local;
     Eigen::Matrix3d R_enu_local;
@@ -138,9 +154,9 @@ class Estimator
     bool is_valid, is_key;
     bool failure_occur;
 
-    vector<Vector3d> point_cloud;
-    vector<Vector3d> margin_cloud;
-    vector<Vector3d> key_poses;
+    vector <Vector3d> point_cloud;
+    vector <Vector3d> margin_cloud;
+    vector <Vector3d> key_poses;
     double initial_timestamp;
 
     double para_Pose[WINDOW_SIZE + 1][SIZE_POSE];
