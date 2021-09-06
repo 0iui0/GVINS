@@ -25,29 +25,35 @@ bool first_image_flag = true;
 double last_image_time = 0;
 bool init_pub = 0;
 
+// 图片的回调函数
 void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
-    if (first_image_flag) {
+    if (first_image_flag) {// 对第一帧图像的基本操作
         first_image_flag = false;
         first_image_time = img_msg->header.stamp.toSec();
         last_image_time = img_msg->header.stamp.toSec();
         return;
     }
     // detect unstable camera stream
+    // 检查时间戳是否正常，这里认为超过一秒或者错乱就异常
+    // 图像时间差太多光流追踪就会失败，这里没有描述子匹配，因此对时间戳要求就高
     if (img_msg->header.stamp.toSec() - last_image_time > 1.0 || img_msg->header.stamp.toSec() < last_image_time) {
+        // 一些常规的reset操作
         ROS_WARN("image discontinue! reset the feature tracker!");
         first_image_flag = true;
         last_image_time = 0;
         pub_count = 1;
         std_msgs::Bool restart_flag;
         restart_flag.data = true;
-        pub_restart.publish(restart_flag);
+        pub_restart.publish(restart_flag);  // 告诉其他模块要重启了
         return;
     }
     last_image_time = img_msg->header.stamp.toSec();
     // frequency control
-    if (round(1.0 * pub_count / (img_msg->header.stamp.toSec() - first_image_time)) <= FREQ) {
+    // 控制一下发给后端的频率
+    if (round(1.0 * pub_count / (img_msg->header.stamp.toSec() - first_image_time)) <= FREQ) {   // 保证发给后端的不超过这个频率
         PUB_THIS_FRAME = true;
         // reset the frequency control
+        // 这段时间的频率和预设频率十分接近，就认为这段时间很棒，重启一下，避免delta t太大
         if (abs(1.0 * pub_count / (img_msg->header.stamp.toSec() - first_image_time) - FREQ) < 0.01 * FREQ) {
             first_image_time = img_msg->header.stamp.toSec();
             pub_count = 0;
@@ -55,7 +61,9 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
     } else
         PUB_THIS_FRAME = false;
 
+    // 即使不发布也是正常做光流追踪的！光流对图像的变化要求尽可能小
     cv_bridge::CvImageConstPtr ptr;
+    // 把ros message转成cv::Mat
     if (img_msg->encoding == "8UC1") {
         sensor_msgs::Image img;
         img.header = img_msg->header;
@@ -92,13 +100,13 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
         bool completed = false;
         for (int j = 0; j < NUM_OF_CAM; j++)
             if (j != 1 || !STEREO_TRACK)
-                completed |= trackerData[j].updateID(i);
+                completed |= trackerData[j].updateID(i);    // 单目的情况下可以直接用=号
         if (!completed)
             break;
     }
-
+    // 给后端喂数据
     if (PUB_THIS_FRAME) {
-        pub_count++;
+        pub_count++;    // 计数器更新
         sensor_msgs::PointCloudPtr feature_points(new sensor_msgs::PointCloud);
         sensor_msgs::ChannelFloat32 id_of_point;
         sensor_msgs::ChannelFloat32 u_of_point;
@@ -111,19 +119,20 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
 
         vector <set<int>> hash_ids(NUM_OF_CAM);
         for (int i = 0; i < NUM_OF_CAM; i++) {
-            auto &un_pts = trackerData[i].cur_un_pts;
-            auto &cur_pts = trackerData[i].cur_pts;
-            auto &ids = trackerData[i].ids;
-            auto &pts_velocity = trackerData[i].pts_velocity;
+            auto &un_pts = trackerData[i].cur_un_pts;   // 去畸变的归一化相机坐标系
+            auto &cur_pts = trackerData[i].cur_pts; // 像素坐标
+            auto &ids = trackerData[i].ids; // id
+            auto &pts_velocity = trackerData[i].pts_velocity;   // 归一化坐标下的速度
             for (unsigned int j = 0; j < ids.size(); j++) {
+                // 只发布追踪大于1的，因为等于1没法构成重投影约束，也没法三角化
                 if (trackerData[i].track_cnt[j] > 1) {
                     int p_id = ids[j];
-                    hash_ids[i].insert(p_id);
+                    hash_ids[i].insert(p_id);   // 这个并没有用到
                     geometry_msgs::Point32 p;
                     p.x = un_pts[j].x;
                     p.y = un_pts[j].y;
                     p.z = 1;
-
+                    // 利用这个ros消息的格式进行信息存储
                     feature_points->points.push_back(p);
                     id_of_point.values.push_back(p_id * NUM_OF_CAM + i);
                     u_of_point.values.push_back(cur_pts[j].x);
@@ -143,8 +152,9 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
         if (!init_pub) {
             init_pub = 1;
         } else
-            pub_img.publish(feature_points);
+            pub_img.publish(feature_points);    // 前端得到的信息通过这个publisher发布出去
 
+        // 可视化相关操作
         if (SHOW_TRACK) {
             ptr = cv_bridge::cvtColor(ptr, sensor_msgs::image_encodings::BGR8);
             //cv::Mat stereo_img(ROW * NUM_OF_CAM, COL, CV_8UC3);
@@ -182,13 +192,17 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
 }
 
 int main(int argc, char **argv) {
+    // ros节点初始化
     ros::init(argc, argv, "feature_tracker");
+    // 声明一个句柄，～代表这个节点的命名空间
     ros::NodeHandle n("~");
+    // 设置ros log级别
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
+    // 读取配置文件
     readParameters(n);
 
     for (int i = 0; i < NUM_OF_CAM; i++)
-        trackerData[i].readIntrinsicParameter(CAM_NAMES[i]);
+        trackerData[i].readIntrinsicParameter(CAM_NAMES[i]);    // 获得每个相机的内参
 
     if (FISHEYE) {
         for (int i = 0; i < NUM_OF_CAM; i++) {
@@ -201,8 +215,10 @@ int main(int argc, char **argv) {
         }
     }
 
+    // 这个向roscore注册订阅这个topic，收到一次message就执行一次回调函数
     ros::Subscriber sub_img = n.subscribe(IMAGE_TOPIC, 100, img_callback);
-
+    // 注册一些publisher
+    // 实际发出去的是 /feature_tracker/feature
     pub_img = n.advertise<sensor_msgs::PointCloud>("feature", 1000);
     pub_match = n.advertise<sensor_msgs::Image>("feature_img", 1000);
     pub_restart = n.advertise<std_msgs::Bool>("restart", 1000);
@@ -210,6 +226,7 @@ int main(int argc, char **argv) {
     if (SHOW_TRACK)
         cv::namedWindow("vis", cv::WINDOW_NORMAL);
     */
+    // spin代表这个节点开始循环查询topic是否接收
     ros::spin();
     return 0;
 }
