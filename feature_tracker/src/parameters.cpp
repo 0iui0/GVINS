@@ -2,7 +2,7 @@
 
 std::string IMAGE_TOPIC;
 std::string IMU_TOPIC;
-std::vector <std::string> CAM_NAMES;
+std::vector<std::string> CAM_NAMES;
 std::string FISHEYE_MASK;
 int MAX_CNT;
 int MIN_DIST;

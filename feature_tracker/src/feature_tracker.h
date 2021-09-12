@@ -22,9 +22,9 @@ using namespace Eigen;
 
 bool inBorder(const cv::Point2f &pt);
 
-void reduceVector(vector <cv::Point2f> &v, vector <uchar> status);
+void reduceVector(vector<cv::Point2f> &v, vector<uchar> status);
 
-void reduceVector(vector<int> &v, vector <uchar> status);
+void reduceVector(vector<int> &v, vector<uchar> status);
 
 class FeatureTracker {
 public:
@@ -50,11 +50,11 @@ public:
     cv::Mat fisheye_mask;
     // ?,上一帧图像,当前帧图像
     cv::Mat prev_img, cur_img, forw_img;
-    vector <cv::Point2f> n_pts;
+    vector<cv::Point2f> n_pts;
     // ?,上一帧点的坐标,当前帧点的坐标
-    vector <cv::Point2f> prev_pts, cur_pts, forw_pts;
-    vector <cv::Point2f> prev_un_pts, cur_un_pts;
-    vector <cv::Point2f> pts_velocity;
+    vector<cv::Point2f> prev_pts, cur_pts, forw_pts;
+    vector<cv::Point2f> prev_un_pts, cur_un_pts;
+    vector<cv::Point2f> pts_velocity;
     // 每个点的id号
     vector<int> ids;
     // 每个点被跟踪的次数

@@ -11,7 +11,7 @@
 
 #define SHOW_UNDISTORTION 0
 
-vector <uchar> r_status;
+vector<uchar> r_status;
 vector<float> r_err;
 queue <sensor_msgs::ImageConstPtr> img_buf;
 
@@ -21,16 +21,19 @@ ros::Publisher pub_restart;
 FeatureTracker trackerData[NUM_OF_CAM];
 double first_image_time;
 int pub_count = 1;
+int img_count = 0;
 bool first_image_flag = true;
 double last_image_time = 0;
 bool init_pub = 0;
 
 // 图片的回调函数
 void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
+    ROS_DEBUG("this is the %dth image", img_count++);
     if (first_image_flag) {// 对第一帧图像的基本操作
         first_image_flag = false;
         first_image_time = img_msg->header.stamp.toSec();
         last_image_time = img_msg->header.stamp.toSec();
+        ROS_DEBUG("this is the first image, timestamp: %d", first_image_time);
         return;
     }
     // detect unstable camera stream
@@ -39,6 +42,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
     if (img_msg->header.stamp.toSec() - last_image_time > 1.0 || img_msg->header.stamp.toSec() < last_image_time) {
         // 一些常规的reset操作
         ROS_WARN("image discontinue! reset the feature tracker!");
+        img_count = 0;
         first_image_flag = true;
         last_image_time = 0;
         pub_count = 1;
@@ -117,7 +121,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
         feature_points->header = img_msg->header;
         feature_points->header.frame_id = "world";
 
-        vector <set<int>> hash_ids(NUM_OF_CAM);
+        vector<set<int>> hash_ids(NUM_OF_CAM);
         for (int i = 0; i < NUM_OF_CAM; i++) {
             auto &un_pts = trackerData[i].cur_un_pts;   // 去畸变的归一化相机坐标系
             auto &cur_pts = trackerData[i].cur_pts; // 像素坐标
@@ -148,7 +152,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
         feature_points->channels.push_back(velocity_x_of_point);
         feature_points->channels.push_back(velocity_y_of_point);
         ROS_DEBUG("publish %f, at %f", feature_points->header.stamp.toSec(), ros::Time::now().toSec());
-        // skip the first image; since no optical speed on frist image
+        // skip the first image; since no optical speed on first image
         if (!init_pub) {
             init_pub = 1;
         } else
@@ -168,22 +172,23 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
                     double len = std::min(1.0, 1.0 * trackerData[i].track_cnt[j] / WINDOW_SIZE);
                     cv::circle(tmp_img, trackerData[i].cur_pts[j], 2, cv::Scalar(255 * (1 - len), 0, 255 * len), 2);
                     //draw speed line
-                    /*
-                    Vector2d tmp_cur_un_pts (trackerData[i].cur_un_pts[j].x, trackerData[i].cur_un_pts[j].y);
-                    Vector2d tmp_pts_velocity (trackerData[i].pts_velocity[j].x, trackerData[i].pts_velocity[j].y);
+                    Vector2d tmp_cur_un_pts(trackerData[i].cur_un_pts[j].x, trackerData[i].cur_un_pts[j].y);
+                    Vector2d tmp_pts_velocity(trackerData[i].pts_velocity[j].x, trackerData[i].pts_velocity[j].y);
                     Vector3d tmp_prev_un_pts;
                     tmp_prev_un_pts.head(2) = tmp_cur_un_pts - 0.10 * tmp_pts_velocity;
                     tmp_prev_un_pts.z() = 1;
                     Vector2d tmp_prev_uv;
                     trackerData[i].m_camera->spaceToPlane(tmp_prev_un_pts, tmp_prev_uv);
-                    cv::line(tmp_img, trackerData[i].cur_pts[j], cv::Point2f(tmp_prev_uv.x(), tmp_prev_uv.y()), cv::Scalar(255 , 0, 0), 1 , 8, 0);
-                    */
-                    //char name[10];
-                    //sprintf(name, "%d", trackerData[i].ids[j]);
-                    //cv::putText(tmp_img, name, trackerData[i].cur_pts[j], cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+                    cv::line(tmp_img, trackerData[i].cur_pts[j], cv::Point2f(tmp_prev_uv.x(), tmp_prev_uv.y()), cv::Scalar(255, 0, 0), 1, 8, 0);
+                    char name[10];
+                    sprintf(name, "%d", trackerData[i].ids[j]);
+                    char cnt[10];
+                    sprintf(cnt, "%d", trackerData[i].track_cnt[j]);
+                    cv::putText(tmp_img, name, trackerData[i].cur_pts[j], cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+                    cv::putText(tmp_img, cnt, trackerData[i].cur_pts[j], cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(255, 255, 255));
                 }
             }
-            //cv::imshow("vis", stereo_img);
+            cv::imshow("vis", stereo_img);
             //cv::waitKey(5);
             pub_match.publish(ptr->toImageMsg());
         }

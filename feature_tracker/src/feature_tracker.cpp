@@ -10,7 +10,7 @@ bool inBorder(const cv::Point2f &pt) {
 }
 
 // 根据状态位，进行“瘦身”
-void reduceVector(vector <cv::Point2f> &v, vector <uchar> status) {
+void reduceVector(vector<cv::Point2f> &v, vector<uchar> status) {
     int j = 0;
     for (int i = 0; i < int(v.size()); i++)
         if (status[i])
@@ -18,7 +18,7 @@ void reduceVector(vector <cv::Point2f> &v, vector <uchar> status) {
     v.resize(j);
 }
 
-void reduceVector(vector<int> &v, vector <uchar> status) {
+void reduceVector(vector<int> &v, vector<uchar> status) {
     int j = 0;
     for (int i = 0; i < int(v.size()); i++)
         if (status[i])
@@ -39,21 +39,18 @@ void FeatureTracker::setMask() {
 
 
     // prefer to keep features that are tracked for long time
-    vector < pair < int, pair < cv::Point2f, int>>> cnt_pts_id;
+    vector< pair<int, pair<cv::Point2f, int>>> cnt_pts_id;
 
     for (unsigned int i = 0; i < forw_pts.size(); i++)
         cnt_pts_id.push_back(make_pair(track_cnt[i], make_pair(forw_pts[i], ids[i])));
     // 利用光流特点，追踪多的稳定性好，排前面
-    sort(cnt_pts_id.begin(), cnt_pts_id.end(),
-         [](const pair<int, pair<cv::Point2f, int>> &a, const pair<int, pair<cv::Point2f, int>> &b) {
-             return a.first > b.first;
-         });
+    sort(cnt_pts_id.begin(), cnt_pts_id.end(), [](const pair<int, pair<cv::Point2f, int>> &a, const pair<int, pair<cv::Point2f, int>> &b) { return a.first > b.first; });
 
     forw_pts.clear();
     ids.clear();
     track_cnt.clear();
 
-    for (auto &it : cnt_pts_id) {
+    for (auto &it: cnt_pts_id) {
         if (mask.at<uchar>(it.second.first) == 255) {
             // 把挑选剩下的特征点重新放进容器
             forw_pts.push_back(it.second.first);
@@ -67,7 +64,7 @@ void FeatureTracker::setMask() {
 
 // 把新的点加入容器，id给-1作为区分
 void FeatureTracker::addPoints() {
-    for (auto &p : n_pts) {
+    for (auto &p: n_pts) {
         forw_pts.push_back(p);
         ids.push_back(-1);
         track_cnt.push_back(1);
@@ -111,7 +108,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time) {
 
     if (cur_pts.size() > 0) { // 上一帧有特征点，就可以进行光流追踪了
         TicToc t_o;
-        vector <uchar> status;
+        vector<uchar> status;
         vector<float> err;
         // 调用opencv函数进行光流追踪
         // 2、光流追踪--calcOpticalFlowPyrLK 通过opencv光流追踪给的状态位剔除outlier；maxLevel=3 金字塔层数
@@ -128,9 +125,11 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time) {
         reduceVector(cur_un_pts, status);   // 去畸变后的坐标
         reduceVector(track_cnt, status);    // 追踪次数
         ROS_DEBUG("temporal optical flow costs: %fms", t_o.toc());
+    } else {
+        ROS_DEBUG("last has no features, cur_pts.size: %d", cur_pts.size());
     }
     // 被追踪到的是上一帧就存在的，因此追踪数+1
-    for (auto &n : track_cnt)
+    for (auto &n: track_cnt)
         n++;
 
     if (PUB_THIS_FRAME) {
@@ -156,8 +155,10 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time) {
             // 会不会这些点集中？会，不过没关系，他们下一次作为老将就得接受均匀化的洗礼
             // 5、提取Shi-Tomas角点--goodFeaturesToTrack
             cv::goodFeaturesToTrack(forw_img, n_pts, MAX_CNT - forw_pts.size(), 0.01, MIN_DIST, mask);
-        } else
+        } else {
             n_pts.clear();
+            ROS_DEBUG("no need Shi-Tomas, n_max_cnt <= 0, is: %d", n_max_cnt);
+        }
         ROS_DEBUG("detect feature costs: %fms", t_t.toc());
 
         ROS_DEBUG("add feature begins");
@@ -183,7 +184,7 @@ void FeatureTracker::rejectWithF() {
     if (forw_pts.size() >= 8) {
         ROS_DEBUG("FM ransac begins");
         TicToc t_f;
-        vector <cv::Point2f> un_cur_pts(cur_pts.size()), un_forw_pts(forw_pts.size());
+        vector<cv::Point2f> un_cur_pts(cur_pts.size()), un_forw_pts(forw_pts.size());
         for (unsigned int i = 0; i < cur_pts.size(); i++) {
             Eigen::Vector3d tmp_p;
             // 得到相机归一化坐标系的值
@@ -201,7 +202,7 @@ void FeatureTracker::rejectWithF() {
             un_forw_pts[i] = cv::Point2f(tmp_p.x(), tmp_p.y());
         }
 
-        vector <uchar> status;
+        vector<uchar> status;
         // opencv接口计算本质矩阵，某种意义也是一种对级约束的outlier剔除
         cv::findFundamentalMat(un_cur_pts, un_forw_pts, cv::FM_RANSAC, F_THRESHOLD, 0.99, status);
         int size_a = cur_pts.size();
@@ -213,6 +214,8 @@ void FeatureTracker::rejectWithF() {
         reduceVector(track_cnt, status);
         ROS_DEBUG("FM ransac: %d -> %lu: %f", size_a, forw_pts.size(), 1.0 * forw_pts.size() / size_a);
         ROS_DEBUG("FM ransac costs: %fms", t_f.toc());
+    } else {
+        ROS_WARN("forw_pts.size: %d, ids.size: %d", forw_pts.size(), ids.size());
     }
 }
 
@@ -241,7 +244,7 @@ void FeatureTracker::readIntrinsicParameter(const string &calib_file) {
 
 void FeatureTracker::showUndistortion(const string &name) {
     cv::Mat undistortedImg(ROW + 600, COL + 600, CV_8UC1, cv::Scalar(0));
-    vector <Eigen::Vector2d> distortedp, undistortedp;
+    vector<Eigen::Vector2d> distortedp, undistortedp;
     for (int i = 0; i < COL; i++)
         for (int j = 0; j < ROW; j++) {
             Eigen::Vector2d a(i, j);
@@ -268,7 +271,7 @@ void FeatureTracker::showUndistortion(const string &name) {
         }
     }
     cv::imshow(name, undistortedImg);
-    cv::waitKey(0);
+    //cv::waitKey(0);
 }
 
 // 当前帧所有点统一去畸变，同时计算特征点速度，用来后续时间戳标定
