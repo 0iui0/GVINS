@@ -97,7 +97,7 @@ void MarginalizationInfo::addResidualBlockInfo(ResidualBlockInfo *residual_block
 }
 
 void MarginalizationInfo::preMarginalize() {
-    for (auto it : factors) {
+    for (auto it: factors) {
         it->Evaluate();
 
         std::vector<int> block_sizes = it->cost_function->parameter_block_sizes();
@@ -123,7 +123,7 @@ int MarginalizationInfo::globalSize(int size) const {
 
 void *ThreadsConstructA(void *threadsstruct) {
     ThreadsStruct *p = ((ThreadsStruct *) threadsstruct);
-    for (auto it : p->sub_factors) {
+    for (auto it: p->sub_factors) {
         for (int i = 0; i < static_cast<int>(it->parameter_blocks.size()); i++) {
             int idx_i = p->parameter_block_idx[reinterpret_cast<long>(it->parameter_blocks[i])];
             int size_i = p->parameter_block_size[reinterpret_cast<long>(it->parameter_blocks[i])];
@@ -151,14 +151,14 @@ void *ThreadsConstructA(void *threadsstruct) {
 
 void MarginalizationInfo::marginalize() {
     int pos = 0;
-    for (auto &it : parameter_block_idx) {
+    for (auto &it: parameter_block_idx) {
         it.second = pos;
         pos += localSize(parameter_block_size[it.first]);
     }
 
     m = pos;
 
-    for (const auto &it : parameter_block_size) {
+    for (const auto &it: parameter_block_size) {
         if (parameter_block_idx.find(it.first) == parameter_block_idx.end()) {
             parameter_block_idx[it.first] = pos;
             pos += localSize(it.second);
@@ -207,7 +207,7 @@ void MarginalizationInfo::marginalize() {
     pthread_t tids[NUM_THREADS];
     ThreadsStruct threadsstruct[NUM_THREADS];
     int i = 0;
-    for (auto it : factors) {
+    for (auto it: factors) {
         threadsstruct[i].sub_factors.push_back(it);
         i++;
         i = i % NUM_THREADS;
@@ -275,7 +275,7 @@ std::vector<double *> MarginalizationInfo::getParameterBlocks(std::unordered_map
     keep_block_idx.clear();
     keep_block_data.clear();
 
-    for (const auto &it : parameter_block_idx) {
+    for (const auto &it: parameter_block_idx) {
         if (it.second >= m) {
             keep_block_size.push_back(parameter_block_size[it.first]);
             keep_block_idx.push_back(parameter_block_idx[it.first]);
@@ -291,7 +291,7 @@ std::vector<double *> MarginalizationInfo::getParameterBlocks(std::unordered_map
 MarginalizationFactor::MarginalizationFactor(MarginalizationInfo *_marginalization_info) : marginalization_info(
         _marginalization_info) {
     int cnt = 0;
-    for (auto it : marginalization_info->keep_block_size) {
+    for (auto it: marginalization_info->keep_block_size) {
         mutable_parameter_block_sizes()->push_back(it);
         cnt += it;
     }

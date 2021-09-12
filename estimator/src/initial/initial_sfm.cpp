@@ -19,9 +19,9 @@ void GlobalSFM::triangulatePoint(Eigen::Matrix<double, 3, 4> &Pose0, Eigen::Matr
 
 
 bool GlobalSFM::solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i,
-                                vector <SFMFeature> &sfm_f) {
-    vector <cv::Point2f> pts_2_vector;
-    vector <cv::Point3f> pts_3_vector;
+                                vector<SFMFeature> &sfm_f) {
+    vector<cv::Point2f> pts_2_vector;
+    vector<cv::Point3f> pts_3_vector;
     for (int j = 0; j < feature_num; j++) {
         if (sfm_f[j].state != true)
             continue;
@@ -66,7 +66,7 @@ bool GlobalSFM::solveFrameByPnP(Matrix3d &R_initial, Vector3d &P_initial, int i,
 
 void GlobalSFM::triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Pose0,
                                      int frame1, Eigen::Matrix<double, 3, 4> &Pose1,
-                                     vector <SFMFeature> &sfm_f) {
+                                     vector<SFMFeature> &sfm_f) {
     assert(frame0 != frame1);
     for (int j = 0; j < feature_num; j++) {
         if (sfm_f[j].state == true)
@@ -103,7 +103,7 @@ void GlobalSFM::triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Po
 // relative_t[i][j]  j_t_ji  (j < i)
 bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
                           const Matrix3d relative_R, const Vector3d relative_T,
-                          vector <SFMFeature> &sfm_f, map<int, Vector3d> &sfm_tracked_points) {
+                          vector<SFMFeature> &sfm_f, map<int, Vector3d> &sfm_tracked_points) {
     feature_num = sfm_f.size();
     //cout << "set 0 and " << l << " as known " << endl;
     // have relative_r relative_t

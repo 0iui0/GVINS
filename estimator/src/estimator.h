@@ -42,7 +42,7 @@ public:
     // interface
     void processIMU(double t, const Vector3d &linear_acceleration, const Vector3d &angular_velocity);
 
-    void processGNSS(const std::vector <ObsPtr> &gnss_mea);
+    void processGNSS(const std::vector<ObsPtr> &gnss_mea);
 
     void inputEphem(EphemBasePtr ephem_ptr);
 
@@ -50,12 +50,7 @@ public:
 
     void inputGNSSTimeDiff(const double t_diff);
 
-    void processImage(const map<int, vector<pair < int, Eigen::Matrix < double, 7, 1>>
-
-    >> &image,
-    const std_msgs::Header &header
-    );
-
+    void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const std_msgs::Header &header);
     // internal
     void clearState();
 
@@ -120,16 +115,16 @@ public:
     Vector3d acc_0, gyr_0;
 
     vector<double> dt_buf[(WINDOW_SIZE + 1)];
-    vector <Vector3d> linear_acceleration_buf[(WINDOW_SIZE + 1)];
-    vector <Vector3d> angular_velocity_buf[(WINDOW_SIZE + 1)];
+    vector<Vector3d> linear_acceleration_buf[(WINDOW_SIZE + 1)];
+    vector<Vector3d> angular_velocity_buf[(WINDOW_SIZE + 1)];
 
     // GNSS related
     bool gnss_ready;
     Eigen::Vector3d anc_ecef;
     Eigen::Matrix3d R_ecef_enu;
     double yaw_enu_local;
-    std::vector <ObsPtr> gnss_meas_buf[(WINDOW_SIZE + 1)];
-    std::vector <EphemBasePtr> gnss_ephem_buf[(WINDOW_SIZE + 1)];
+    std::vector<ObsPtr> gnss_meas_buf[(WINDOW_SIZE + 1)];
+    std::vector<EphemBasePtr> gnss_ephem_buf[(WINDOW_SIZE + 1)];
     std::vector<double> latest_gnss_iono_params;
     std::map <uint32_t, std::vector<EphemBasePtr>> sat2ephem;
     std::map <uint32_t, std::map<double, size_t>> sat2time_index;
@@ -154,9 +149,9 @@ public:
     bool is_valid, is_key;
     bool failure_occur;
 
-    vector <Vector3d> point_cloud;
-    vector <Vector3d> margin_cloud;
-    vector <Vector3d> key_poses;
+    vector<Vector3d> point_cloud;
+    vector<Vector3d> margin_cloud;
+    vector<Vector3d> key_poses;
     double initial_timestamp;
 
     double para_Pose[WINDOW_SIZE + 1][SIZE_POSE];

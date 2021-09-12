@@ -22,7 +22,7 @@ void FeatureManager::clearState() {
 
 int FeatureManager::getFeatureCount() {
     int cnt = 0;
-    for (auto &it : feature) {
+    for (auto &it: feature) {
 
         it.used_num = it.feature_per_frame.size();
 
@@ -33,110 +33,54 @@ int FeatureManager::getFeatureCount() {
     return cnt;
 }
 
+bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, double td) {
+    ROS_DEBUG("input feature: %d", (int)image.size());
+    ROS_DEBUG("num of feature: %d", getFeatureCount());
+    double parallax_sum = 0;
+    int parallax_num = 0;
+    last_track_num = 0;
+    for (auto &id_pts : image) {
+        FeaturePerFrame f_per_fra(id_pts.second[0].second, td);
+        int feature_id = id_pts.first;
+        auto it = find_if(feature.begin(), feature.end(), [feature_id](const FeaturePerId &it) { return it.feature_id == feature_id; });
+        if (it == feature.end()) {
+            feature.push_back(FeaturePerId(feature_id, frame_count));
+            feature.back().feature_per_frame.push_back(f_per_fra);
+        } else if (it->feature_id == feature_id) {
+            it->feature_per_frame.push_back(f_per_fra);
+            last_track_num++;
+        }
+    }
 
-bool FeatureManager::addFeatureCheckParallax(int frame_count,
-                                             const map<int, vector<pair < int, Eigen::Matrix < double, 7, 1>>
+    if (frame_count < 2 || last_track_num < 20)
+        return true;
 
->> &image,
-double td
-)
-{
-ROS_DEBUG("input feature: %d", (int)image.
+    for (auto &it_per_id : feature) {
+        if (it_per_id.start_frame <= frame_count - 2 && it_per_id.start_frame + int(it_per_id.feature_per_frame.size()) - 1 >= frame_count - 1) {
+            parallax_sum += compensatedParallax2(it_per_id, frame_count);
+            parallax_num++;
+        }
+    }
 
-size()
-
-);
-ROS_DEBUG("num of feature: %d",
-
-getFeatureCount()
-
-);
-double parallax_sum = 0;
-int parallax_num = 0;
-last_track_num = 0;
-for (
-auto &id_pts
-: image)
-{
-FeaturePerFrame f_per_fra(id_pts.second[0].second, td);
-
-int feature_id = id_pts.first;
-auto it = find_if(feature.begin(), feature.end(), [feature_id](const FeaturePerId &it) {
-    return it.feature_id == feature_id;
-});
-
-if (it == feature.
-
-end()
-
-)
-{
-feature.
-push_back(FeaturePerId(feature_id, frame_count)
-);
-feature.
-
-back()
-
-.feature_per_frame.
-push_back(f_per_fra);
-}
-else if (it->feature_id == feature_id)
-{
-it->feature_per_frame.
-push_back(f_per_fra);
-last_track_num++;
-}
-}
-
-if (frame_count < 2 || last_track_num < 20)
-return true;
-
-for (
-auto &it_per_id
-: feature)
-{
-if (it_per_id.start_frame <= frame_count - 2 &&
-it_per_id.start_frame +
-int(it_per_id
-.feature_per_frame.
-
-size()
-
-) - 1 >= frame_count - 1)
-{
-parallax_sum +=
-compensatedParallax2(it_per_id, frame_count
-);
-parallax_num++;
-}
-}
-
-if (parallax_num == 0)
-{
-return true;
-}
-else
-{
-ROS_DEBUG("parallax_sum: %lf, parallax_num: %d", parallax_sum, parallax_num);
-ROS_DEBUG("current parallax: %lf", parallax_sum /
-parallax_num *FOCAL_LENGTH
-);
-return parallax_sum / parallax_num >=
-MIN_PARALLAX;
-}
+    if (parallax_num == 0) {
+        return true;
+    } else {
+        ROS_DEBUG("parallax_sum: %lf, parallax_num: %d", parallax_sum, parallax_num);
+        ROS_DEBUG("current parallax: %lf", parallax_sum / parallax_num *FOCAL_LENGTH);
+        return parallax_sum / parallax_num >= MIN_PARALLAX;
+    }
 }
 
 void FeatureManager::debugShow() {
     ROS_DEBUG("debug show");
-    for (auto &it : feature) {
+    for (auto &it: feature) {
         ROS_ASSERT(it.feature_per_frame.size() != 0);
         ROS_ASSERT(it.start_frame >= 0);
         ROS_ASSERT(it.used_num >= 0);
 
         ROS_DEBUG("%d,%d,%d ", it.feature_id, it.used_num, it.start_frame);
         int sum = 0;
-        for (auto &j : it.feature_per_frame) {
+        for (auto &j: it.feature_per_frame) {
             ROS_DEBUG("%d,", int(j.is_used));
             sum += j.is_used;
             printf("(%lf,%lf) ", j.point(0), j.point(1));
@@ -145,9 +89,9 @@ void FeatureManager::debugShow() {
     }
 }
 
-vector <pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(int frame_count_l, int frame_count_r) {
-    vector <pair<Vector3d, Vector3d>> corres;
-    for (auto &it : feature) {
+vector<pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(int frame_count_l, int frame_count_r) {
+    vector<pair<Vector3d, Vector3d>> corres;
+    for (auto &it: feature) {
         if (it.start_frame <= frame_count_l && it.endFrame() >= frame_count_r) {
             Vector3d a = Vector3d::Zero(), b = Vector3d::Zero();
             int idx_l = frame_count_l - it.start_frame;
@@ -165,7 +109,7 @@ vector <pair<Vector3d, Vector3d>> FeatureManager::getCorresponding(int frame_cou
 
 void FeatureManager::setDepth(const VectorXd &x) {
     int feature_index = -1;
-    for (auto &it_per_id : feature) {
+    for (auto &it_per_id: feature) {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
@@ -190,7 +134,7 @@ void FeatureManager::removeFailures() {
 
 void FeatureManager::clearDepth(const VectorXd &x) {
     int feature_index = -1;
-    for (auto &it_per_id : feature) {
+    for (auto &it_per_id: feature) {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
@@ -201,7 +145,7 @@ void FeatureManager::clearDepth(const VectorXd &x) {
 VectorXd FeatureManager::getDepthVector() {
     VectorXd dep_vec(getFeatureCount());
     int feature_index = -1;
-    for (auto &it_per_id : feature) {
+    for (auto &it_per_id: feature) {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
@@ -215,7 +159,7 @@ VectorXd FeatureManager::getDepthVector() {
 }
 
 void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[]) {
-    for (auto &it_per_id : feature) {
+    for (auto &it_per_id: feature) {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
@@ -234,7 +178,7 @@ void FeatureManager::triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[]) 
         P0.leftCols<3>() = Eigen::Matrix3d::Identity();
         P0.rightCols<1>() = Eigen::Vector3d::Zero();
 
-        for (auto &it_per_frame : it_per_id.feature_per_frame) {
+        for (auto &it_per_frame: it_per_id.feature_per_frame) {
             imu_j++;
 
             Eigen::Vector3d t1 = Ps[imu_j] + Rs[imu_j] * tic[0];

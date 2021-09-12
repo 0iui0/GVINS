@@ -181,10 +181,10 @@ namespace cv {
 }
 
 
-bool MotionEstimator::solveRelativeRT(const vector <pair<Vector3d, Vector3d>> &corres, Matrix3d &Rotation,
+bool MotionEstimator::solveRelativeRT(const vector<pair<Vector3d, Vector3d>> &corres, Matrix3d &Rotation,
                                       Vector3d &Translation) {
     if (corres.size() >= 15) {
-        vector <cv::Point2f> ll, rr;
+        vector<cv::Point2f> ll, rr;
         for (int i = 0; i < int(corres.size()); i++) {
             ll.push_back(cv::Point2f(corres[i].first(0), corres[i].first(1)));
             rr.push_back(cv::Point2f(corres[i].second(0), corres[i].second(1)));

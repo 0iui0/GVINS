@@ -32,7 +32,7 @@ public:
     void add_loopedge(const Eigen::Vector3d &p0, const Eigen::Vector3d &p1);
 
 private:
-    std::vector <visualization_msgs::Marker> m_markers;
+    std::vector<visualization_msgs::Marker> m_markers;
     std_msgs::ColorRGBA m_image_boundary_color;
     std_msgs::ColorRGBA m_optical_center_connector_color;
     double m_scale;

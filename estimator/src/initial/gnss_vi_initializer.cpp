@@ -1,7 +1,7 @@
 #include "gnss_vi_initializer.h"
 
-GNSSVIInitializer::GNSSVIInitializer(const std::vector <std::vector<ObsPtr>> &gnss_meas_buf_,
-                                     const std::vector <std::vector<EphemBasePtr>> &gnss_ephem_buf_,
+GNSSVIInitializer::GNSSVIInitializer(const std::vector<std::vector<ObsPtr>> &gnss_meas_buf_,
+                                     const std::vector<std::vector<EphemBasePtr>> &gnss_ephem_buf_,
                                      const std::vector<double> &iono_params_)
         : gnss_meas_buf(gnss_meas_buf_), gnss_ephem_buf(gnss_ephem_buf_), iono_params(iono_params_) {
     num_all_meas = 0;
@@ -14,8 +14,8 @@ GNSSVIInitializer::GNSSVIInitializer(const std::vector <std::vector<ObsPtr>> &gn
 
 bool GNSSVIInitializer::coarse_localization(Eigen::Matrix<double, 7, 1> &result) {
     result.setZero();
-    std::vector <ObsPtr> accum_obs;
-    std::vector <EphemBasePtr> accum_ephems;
+    std::vector<ObsPtr> accum_obs;
+    std::vector<EphemBasePtr> accum_ephems;
     for (uint32_t i = 0; i < gnss_meas_buf.size(); ++i) {
         std::copy(gnss_meas_buf[i].begin(), gnss_meas_buf[i].end(), std::back_inserter(accum_obs));
         std::copy(gnss_ephem_buf[i].begin(), gnss_ephem_buf[i].end(), std::back_inserter(accum_ephems));
@@ -35,7 +35,7 @@ bool GNSSVIInitializer::coarse_localization(Eigen::Matrix<double, 7, 1> &result)
     return true;
 }
 
-bool GNSSVIInitializer::yaw_alignment(const std::vector <Eigen::Vector3d> &local_vs,
+bool GNSSVIInitializer::yaw_alignment(const std::vector<Eigen::Vector3d> &local_vs,
                                       const Eigen::Vector3d &rough_anchor_ecef, double &aligned_yaw, double &rcv_ddt) {
     aligned_yaw = 0;
     rcv_ddt = 0;
@@ -94,7 +94,7 @@ bool GNSSVIInitializer::yaw_alignment(const std::vector <Eigen::Vector3d> &local
     return true;
 }
 
-bool GNSSVIInitializer::anchor_refinement(const std::vector <Eigen::Vector3d> &local_ps,
+bool GNSSVIInitializer::anchor_refinement(const std::vector<Eigen::Vector3d> &local_ps,
                                           const double aligned_yaw, const double aligned_ddt,
                                           const Eigen::Matrix<double, 7, 1> &rough_ecef_dt,
                                           Eigen::Matrix<double, 7, 1> &refined_ecef_dt) {
@@ -107,7 +107,7 @@ bool GNSSVIInitializer::anchor_refinement(const std::vector <Eigen::Vector3d> &l
     Eigen::Vector4d refine_dt = rough_ecef_dt.tail<4>();
     uint32_t refine_iter = 0;
     double refine_dx_norm = 1.0;
-    std::vector <uint32_t> unobserved_sys;
+    std::vector<uint32_t> unobserved_sys;
     for (uint32_t k = 0; k < 4; ++k) {
         if (rough_ecef_dt(3 + k) == 0)
             unobserved_sys.push_back(k);
@@ -128,14 +128,14 @@ bool GNSSVIInitializer::anchor_refinement(const std::vector <Eigen::Vector3d> &l
 
             Eigen::VectorXd epoch_res;
             Eigen::MatrixXd epoch_J;
-            std::vector <Eigen::Vector2d> tmp_atmos_delay, tmp_sv_azel;
+            std::vector<Eigen::Vector2d> tmp_atmos_delay, tmp_sv_azel;
             psr_res(ecef_xyz_dt, gnss_meas_buf[i], all_sat_states[i], iono_params,
                     epoch_res, epoch_J, tmp_atmos_delay, tmp_sv_azel);
             refine_b.segment(refine_counter, gnss_meas_buf[i].size()) = epoch_res;
             refine_G.middleRows(refine_counter, gnss_meas_buf[i].size()) = epoch_J;
             refine_counter += gnss_meas_buf[i].size();
         }
-        for (uint32_t k : unobserved_sys) {
+        for (uint32_t k: unobserved_sys) {
             refine_b(refine_counter) = 0;
             refine_G(refine_counter, k + 3) = 1.0;
             ++refine_counter;

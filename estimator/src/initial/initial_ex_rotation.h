@@ -18,14 +18,14 @@ class InitialEXRotation {
 public:
     InitialEXRotation();
 
-    bool CalibrationExRotation(vector <pair<Vector3d, Vector3d>> corres, Quaterniond delta_q_imu,
+    bool CalibrationExRotation(vector<pair<Vector3d, Vector3d>> corres, Quaterniond delta_q_imu,
                                Matrix3d &calib_ric_result);
 
 private:
-    Matrix3d solveRelativeR(const vector <pair<Vector3d, Vector3d>> &corres);
+    Matrix3d solveRelativeR(const vector<pair<Vector3d, Vector3d>> &corres);
 
-    double testTriangulation(const vector <cv::Point2f> &l,
-                             const vector <cv::Point2f> &r,
+    double testTriangulation(const vector<cv::Point2f> &l,
+                             const vector<cv::Point2f> &r,
                              cv::Mat_<double> R, cv::Mat_<double> t);
 
     void decomposeE(cv::Mat E,
@@ -34,9 +34,9 @@ private:
 
     int frame_count;
 
-    vector <Matrix3d> Rc;
-    vector <Matrix3d> Rimu;
-    vector <Matrix3d> Rc_g;
+    vector<Matrix3d> Rc;
+    vector<Matrix3d> Rimu;
+    vector<Matrix3d> Rc_g;
     Matrix3d ric;
 };
 

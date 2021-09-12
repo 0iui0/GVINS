@@ -128,13 +128,13 @@ void ProjectionFactor::check(double **parameters) {
 
     puts("my");
 
-    std::cout << Eigen::Map < Eigen::Matrix < double, 2, 1 >> (res).transpose() << std::endl
+    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 1 >> (res).transpose() << std::endl
                                                            << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix < double, 2, 7, Eigen::RowMajor >> (jaco[0]) << std::endl
+    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[0]) << std::endl
                                                                             << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix < double, 2, 7, Eigen::RowMajor >> (jaco[1]) << std::endl
+    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[1]) << std::endl
                                                                             << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix < double, 2, 7, Eigen::RowMajor >> (jaco[2]) << std::endl
+    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[2]) << std::endl
                                                                             << std::endl;
     std::cout << Eigen::Map<Eigen::Vector2d>(jaco[3]) << std::endl
               << std::endl;

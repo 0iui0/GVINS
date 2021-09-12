@@ -15,7 +15,7 @@ class ImageFrame {
 public:
     ImageFrame() {};
 
-    ImageFrame(const map<int, vector<pair < int, Eigen::Matrix < double, 7, 1>>
+    ImageFrame(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>
 
     >>& _points,
     double _t
@@ -23,7 +23,7 @@ public:
     {
         points = _points;
     };
-    map<int, vector<pair < int, Eigen::Matrix < double, 7, 1>> > >
+    map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>> > >
     points;
     double t;
     Matrix3d R;
