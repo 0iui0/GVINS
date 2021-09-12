@@ -1,2 +1,5 @@
 .vscode/
 .idea/
+output
+feature_tracker/cmake-build-debug
+estimator/cmake-build-debug
