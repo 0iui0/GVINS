@@ -3,7 +3,7 @@
 #common parameters
 imu_topic: "/imu0"
 image_topic: "/cam1/image_raw"
-output_dir: "~/output/"
+output_dir: "~/catkin_ws/src/GVINS/output/visensor/"
 
 #camera calibration 
 model_type: MEI
