@@ -315,7 +315,7 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg) {
 
 void process() {
     while (true) {
-        std::vector< std::pair<std::vector< sensor_msgs::ImuConstPtr > , sensor_msgs::PointCloudConstPtr >> measurements;
+        std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr > , sensor_msgs::PointCloudConstPtr >> measurements;
         std::vector<sensor_msgs::ImuConstPtr> imu_msg;
         sensor_msgs::PointCloudConstPtr img_msg;
         std::vector<ObsPtr> gnss_msg;
@@ -376,7 +376,7 @@ void process() {
 
         TicToc t_s;
         // 特征点id->特征点信息
-        map < int, vector< pair<int, Eigen::Matrix<double, 7, 1 >> >> image;
+        map < int, vector<pair<int, Eigen::Matrix<double, 7, 1 >> >> image;
         for (unsigned int i = 0; i < img_msg->points.size(); i++) {
             int v = img_msg->channels[0].values[i] + 0.5;
             int feature_id = v / NUM_OF_CAM;

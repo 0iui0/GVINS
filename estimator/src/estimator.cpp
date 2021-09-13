@@ -1004,8 +1004,8 @@ void Estimator::optimization() {
                 anchor_value.push_back(para_Pose[0][k]);
             PoseAnchorFactor *pose_anchor_factor = new PoseAnchorFactor(anchor_value);
             ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(pose_anchor_factor,
-                                                                           NULL, vector< double * > {para_Pose[0]},
-                                                                           vector< int > {0});
+                                                                           NULL, vector<double *>{para_Pose[0]},
+                                                                           vector<int>{0});
             marginalization_info->addResidualBlockInfo(residual_block_info);
         }
 
@@ -1013,10 +1013,10 @@ void Estimator::optimization() {
             if (pre_integrations[1]->sum_dt < 10.0) {
                 IMUFactor *imu_factor = new IMUFactor(pre_integrations[1]);
                 ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(imu_factor, NULL,
-                                                                               vector< double * >
+                                                                               vector<double *>
                                                                                {para_Pose[0], para_SpeedBias[0],
                                                                                 para_Pose[1], para_SpeedBias[1]},
-                                                                               vector< int > {0, 1});
+                                                                               vector<int>{0, 1});
                 marginalization_info->addResidualBlockInfo(residual_block_info);
             }
         }
@@ -1032,10 +1032,11 @@ void Estimator::optimization() {
                 const double ts_ratio = (upper_ts - obs_local_ts) / (upper_ts - lower_ts);
 
                 GnssPsrDoppFactor *gnss_factor = new GnssPsrDoppFactor(gnss_meas_buf[0][j],
-                                                                       gnss_ephem_buf[0][j], latest_gnss_iono_params,
+                                                                       gnss_ephem_buf[0][j],
+                                                                       latest_gnss_iono_params,
                                                                        ts_ratio);
                 ResidualBlockInfo *psr_dopp_residual_block_info = new ResidualBlockInfo(gnss_factor, NULL,
-                                                                                        vector< double * >
+                                                                                        vector<double *>
                                                                                         {para_Pose[0],
                                                                                          para_SpeedBias[0],
                                                                                          para_Pose[1],
@@ -1044,7 +1045,7 @@ void Estimator::optimization() {
                                                                                          para_rcv_ddt,
                                                                                          para_yaw_enu_local,
                                                                                          para_anc_ecef},
-                                                                                        vector< int > {0, 1, 4, 5});
+                                                                                        vector<int>{0, 1, 4, 5});
                 marginalization_info->addResidualBlockInfo(psr_dopp_residual_block_info);
             }
 
@@ -1052,20 +1053,20 @@ void Estimator::optimization() {
             for (size_t k = 0; k < 4; ++k) {
                 DtDdtFactor *dt_ddt_factor = new DtDdtFactor(gnss_dt);
                 ResidualBlockInfo *dt_ddt_residual_block_info = new ResidualBlockInfo(dt_ddt_factor, NULL,
-                                                                                      vector< double * >
+                                                                                      vector<double *>
                                                                                       {para_rcv_dt + k,
                                                                                        para_rcv_dt + 4 + k,
                                                                                        para_rcv_ddt, para_rcv_ddt + 1},
-                                                                                      vector< int > {0, 2});
+                                                                                      vector<int>{0, 2});
                 marginalization_info->addResidualBlockInfo(dt_ddt_residual_block_info);
             }
 
             // margin rcv_ddt smooth factor
             DdtSmoothFactor *ddt_smooth_factor = new DdtSmoothFactor(GNSS_DDT_WEIGHT);
             ResidualBlockInfo *ddt_smooth_residual_block_info = new ResidualBlockInfo(ddt_smooth_factor, NULL,
-                                                                                      vector< double * >
+                                                                                      vector<double *>
                                                                                       {para_rcv_ddt, para_rcv_ddt + 1},
-                                                                                      vector< int > {0});
+                                                                                      vector<int>{0});
             marginalization_info->addResidualBlockInfo(ddt_smooth_residual_block_info);
         }
 
@@ -1098,24 +1099,24 @@ void Estimator::optimization() {
                                                                           it_per_frame.cur_td);
                         ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(f_td,
                                                                                        loss_function,
-                                                                                       vector< double * >
+                                                                                       vector<double *>
                                                                                        {para_Pose[imu_i],
                                                                                         para_Pose[imu_j],
                                                                                         para_Ex_Pose[0],
                                                                                         para_Feature[feature_index],
                                                                                         para_Td[0]},
-                                                                                       vector< int > {0, 3});
+                                                                                       vector<int>{0, 3});
                         marginalization_info->addResidualBlockInfo(residual_block_info);
                     } else {
                         ProjectionFactor *f = new ProjectionFactor(pts_i, pts_j);
                         ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(f,
                                                                                        loss_function,
-                                                                                       vector< double * >
+                                                                                       vector<double *>
                                                                                        {para_Pose[imu_i],
                                                                                         para_Pose[imu_j],
                                                                                         para_Ex_Pose[0],
                                                                                         para_Feature[feature_index]},
-                                                                                       vector< int > {0, 3});
+                                                                                       vector<int>{0, 3});
                         marginalization_info->addResidualBlockInfo(residual_block_info);
                     }
                 }
