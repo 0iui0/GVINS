@@ -11,13 +11,14 @@ class IntegrationBase {
 public:
     IntegrationBase() = delete;
 
-    IntegrationBase(const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
-                    const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg)
-            : acc_0{_acc_0}, gyr_0{_gyr_0}, linearized_acc{_acc_0}, linearized_gyr{_gyr_0},
+    IntegrationBase(const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0, const Eigen::Vector3d &_linearized_ba, const Eigen::Vector3d &_linearized_bg)
+            : acc_0{_acc_0}, gyr_0{_gyr_0},
+              linearized_acc{_acc_0}, linearized_gyr{_gyr_0},
               linearized_ba{_linearized_ba}, linearized_bg{_linearized_bg},
-              jacobian{Eigen::Matrix<double, 15, 15>::Identity()}, covariance{Eigen::Matrix<double, 15, 15>::Zero()},
-              sum_dt{0.0}, delta_p{Eigen::Vector3d::Zero()}, delta_q{Eigen::Quaterniond::Identity()},
-              delta_v{Eigen::Vector3d::Zero()} {
+              jacobian{Eigen::Matrix<double, 15, 15>::Identity()},
+              covariance{Eigen::Matrix<double, 15, 15>::Zero()},
+              sum_dt{0.0},
+              delta_p{Eigen::Vector3d::Zero()}, delta_q{Eigen::Quaterniond::Identity()}, delta_v{Eigen::Vector3d::Zero()} {
         noise = Eigen::Matrix<double, 18, 18>::Zero();
         noise.block<3, 3>(0, 0) = (ACC_N * ACC_N) * Eigen::Matrix3d::Identity();
         noise.block<3, 3>(3, 3) = (GYR_N * GYR_N) * Eigen::Matrix3d::Identity();

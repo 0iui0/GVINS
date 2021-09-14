@@ -315,7 +315,7 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg) {
 
 void process() {
     while (true) {
-        std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr > , sensor_msgs::PointCloudConstPtr >> measurements;
+        std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr> , sensor_msgs::PointCloudConstPtr>> measurements;
         std::vector<sensor_msgs::ImuConstPtr> imu_msg;
         sensor_msgs::PointCloudConstPtr img_msg;
         std::vector<ObsPtr> gnss_msg;
@@ -347,7 +347,6 @@ void process() {
                 // 时间差和imu数据送进去
                 estimator_ptr->processIMU(dt, Vector3d(dx, dy, dz), Vector3d(rx, ry, rz));
                 //printf("imu: dt:%f a: %f %f %f w: %f %f %f\n",dt, dx, dy, dz, rx, ry, rz);
-
             } else {
                 // 这就是针对最后一个imu数据，需要做一个简单的线性插值
                 double dt_1 = img_t - current_time;

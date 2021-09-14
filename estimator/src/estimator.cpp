@@ -48,7 +48,7 @@ void Estimator::clearState() {
 
     solver_flag = INITIAL;
     first_imu = false,
-            sum_of_back = 0;
+    sum_of_back = 0;
     sum_of_front = 0;
     frame_count = 0;
     solver_flag = INITIAL;
@@ -65,8 +65,7 @@ void Estimator::clearState() {
     sat2time_index.clear();
     sat_track_status.clear();
     latest_gnss_iono_params.clear();
-    std::copy(GNSS_IONO_DEFAULT_PARAMS.begin(), GNSS_IONO_DEFAULT_PARAMS.end(),
-              std::back_inserter(latest_gnss_iono_params));
+    std::copy(GNSS_IONO_DEFAULT_PARAMS.begin(), GNSS_IONO_DEFAULT_PARAMS.end(),std::back_inserter(latest_gnss_iono_params));
     diff_t_gnss_local = 0;
 
     first_optimization = true;
