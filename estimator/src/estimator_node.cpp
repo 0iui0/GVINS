@@ -112,8 +112,7 @@ void update() {
 
 // 获得匹配好的图像imu组
 // 根据时间戳，挑选当前帧和上一帧图像之间的IMU/GNSS数据，用于后续的IMU积分
-bool getMeasurements(std::vector<sensor_msgs::ImuConstPtr> &imu_msg, sensor_msgs::PointCloudConstPtr &img_msg,
-                     std::vector<ObsPtr> &gnss_msg) {
+bool getMeasurements(std::vector<sensor_msgs::ImuConstPtr> &imu_msg, sensor_msgs::PointCloudConstPtr &img_msg, std::vector<ObsPtr> &gnss_msg) {
     if (imu_buf.empty() || feature_buf.empty() || (GNSS_ENABLE && gnss_meas_buf.empty()))
         return false;
 
@@ -375,7 +374,7 @@ void process() {
 
         TicToc t_s;
         // 特征点id->特征点信息
-        map < int, vector<pair<int, Eigen::Matrix<double, 7, 1 >> >> image;
+        map <int, vector<pair<int, Eigen::Matrix<double, 7, 1 >>>> image;
         for (unsigned int i = 0; i < img_msg->points.size(); i++) {
             int v = img_msg->channels[0].values[i] + 0.5;
             int feature_id = v / NUM_OF_CAM;
@@ -455,10 +454,8 @@ int main(int argc, char **argv) {
         sub_gnss_iono_params = n.subscribe(GNSS_IONO_PARAMS_TOPIC, 100, gnss_iono_params_callback);
 
         if (GNSS_LOCAL_ONLINE_SYNC) {
-            sub_gnss_time_pluse_info = n.subscribe(GNSS_TP_INFO_TOPIC, 100,
-                                                   gnss_tp_info_callback);
-            sub_local_trigger_info = n.subscribe(LOCAL_TRIGGER_INFO_TOPIC, 100,
-                                                 local_trigger_info_callback);
+            sub_gnss_time_pluse_info = n.subscribe(GNSS_TP_INFO_TOPIC, 100, gnss_tp_info_callback);
+            sub_local_trigger_info = n.subscribe(LOCAL_TRIGGER_INFO_TOPIC, 100, local_trigger_info_callback);
         } else {
             time_diff_gnss_local = GNSS_LOCAL_TIME_DIFF;
             estimator_ptr->inputGNSSTimeDiff(time_diff_gnss_local);

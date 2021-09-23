@@ -441,13 +441,11 @@ void pubKeyframe(const Estimator &estimator) {
         point_cloud.header = estimator.Headers[WINDOW_SIZE - 2];
         for (auto &it_per_id: estimator.f_manager.feature) {
             int frame_size = it_per_id.feature_per_frame.size();
-            if (it_per_id.start_frame < WINDOW_SIZE - 2 && it_per_id.start_frame + frame_size - 1 >= WINDOW_SIZE - 2 &&
-                it_per_id.solve_flag == 1) {
+            if (it_per_id.start_frame < WINDOW_SIZE - 2 && it_per_id.start_frame + frame_size - 1 >= WINDOW_SIZE - 2 && it_per_id.solve_flag == 1) {
 
                 int imu_i = it_per_id.start_frame;
                 Vector3d pts_i = it_per_id.feature_per_frame[0].point * it_per_id.estimated_depth;
-                Vector3d w_pts_i = estimator.Rs[imu_i] * (estimator.ric[0] * pts_i + estimator.tic[0])
-                                   + estimator.Ps[imu_i];
+                Vector3d w_pts_i = estimator.Rs[imu_i] * (estimator.ric[0] * pts_i + estimator.tic[0]) + estimator.Ps[imu_i];
                 geometry_msgs::Point32 p;
                 p.x = w_pts_i(0);
                 p.y = w_pts_i(1);
