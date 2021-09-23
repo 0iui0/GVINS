@@ -16,7 +16,7 @@ using namespace Eigen;
 #include <ros/assert.h>
 
 #include "parameters.h"
-
+// 路标点在图像中的坐标
 class FeaturePerFrame {
 public:
     FeaturePerFrame(const Eigen::Matrix<double, 7, 1> &_point, double td) {
@@ -41,7 +41,7 @@ public:
     VectorXd b;
     double dep_gradient;
 };
-
+// 出现某个路标点的所有图像
 class FeaturePerId {
 public:
     const int feature_id;
@@ -56,10 +56,7 @@ public:
 
     Vector3d gt_p;
 
-    FeaturePerId(int _feature_id, int _start_frame)
-            : feature_id(_feature_id), start_frame(_start_frame),
-              used_num(0), estimated_depth(-1.0), solve_flag(0) {
-    }
+    FeaturePerId(int _feature_id, int _start_frame): feature_id(_feature_id), start_frame(_start_frame), used_num(0), estimated_depth(-1.0), solve_flag(0) {}
 
     int endFrame();
 };
@@ -91,15 +88,14 @@ public:
 
     void triangulate(Vector3d Ps[], Vector3d tic[], Matrix3d ric[]);
 
-    void
-    removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P);
+    void removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P);
 
     void removeBack();
 
     void removeFront(int frame_count);
 
     void removeOutlier();
-
+    //滑窗内所有的路标点
     list <FeaturePerId> feature;
     int last_track_num;
 

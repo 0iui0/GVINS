@@ -373,7 +373,7 @@ void process() {
         ROS_DEBUG("processing vision data with stamp %f \n", img_msg->header.stamp.toSec());
 
         TicToc t_s;
-        // 特征点id->特征点信息
+        // 特征点id->特征点信息 (ros img_msg--> image_map)
         map <int, vector<pair<int, Eigen::Matrix<double, 7, 1 >>>> image;
         for (unsigned int i = 0; i < img_msg->points.size(); i++) {
             int v = img_msg->channels[0].values[i] + 0.5;
