@@ -4,8 +4,7 @@ int FeaturePerId::endFrame() {
     return start_frame + feature_per_frame.size() - 1;
 }
 
-FeatureManager::FeatureManager(Matrix3d _Rs[])
-        : Rs(_Rs) {
+FeatureManager::FeatureManager(Matrix3d _Rs[]): Rs(_Rs) {
     for (int i = 0; i < NUM_OF_CAM; i++)
         ric[i].setIdentity();
 }
@@ -23,9 +22,7 @@ void FeatureManager::clearState() {
 int FeatureManager::getFeatureCount() {
     int cnt = 0;
     for (auto &it: feature) {
-
         it.used_num = it.feature_per_frame.size();
-
         if (it.used_num >= 2 && it.start_frame < WINDOW_SIZE - 2) {
             cnt++;
         }
