@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
     // 声明一个句柄，～代表这个节点的命名空间
     ros::NodeHandle n("~");
     // 设置ros log级别
-    ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
+    ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
     // 读取配置文件
     readParameters(n);
 

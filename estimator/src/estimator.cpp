@@ -174,7 +174,8 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
             }
         }
     }
-
+    // 打印特征点id，共视帧数量，第一帧id
+    // f_manager.debugShow();
     if (solver_flag == INITIAL) {
         // 有足够的帧数
         if (frame_count == WINDOW_SIZE) {
@@ -1139,9 +1140,7 @@ void Estimator::optimization() {
         last_marginalization_parameter_blocks = parameter_blocks;
 
     } else {
-        if (last_marginalization_info &&
-            std::count(std::begin(last_marginalization_parameter_blocks),
-                       std::end(last_marginalization_parameter_blocks), para_Pose[WINDOW_SIZE - 1])) {
+        if (last_marginalization_info && std::count(std::begin(last_marginalization_parameter_blocks), std::end(last_marginalization_parameter_blocks), para_Pose[WINDOW_SIZE - 1])) {
 
             MarginalizationInfo *marginalization_info = new MarginalizationInfo();
             vector2double();
@@ -1154,7 +1153,8 @@ void Estimator::optimization() {
                 }
                 // construct new marginlization_factor
                 MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_marginalization_info);
-                ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(marginalization_factor, NULL,
+                ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(marginalization_factor,
+                                                                               NULL,
                                                                                last_marginalization_parameter_blocks,
                                                                                drop_set);
 

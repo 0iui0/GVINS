@@ -418,7 +418,7 @@ void process() {
 int main(int argc, char **argv) {
     ros::init(argc, argv, "gvins");
     ros::NodeHandle n("~");
-    ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
+    ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
     readParameters(n);
     estimator_ptr.reset(new Estimator());
     estimator_ptr->setParameter();

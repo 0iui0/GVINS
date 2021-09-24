@@ -73,20 +73,22 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
 }
 
 void FeatureManager::debugShow() {
-    ROS_DEBUG("debug show");
+    ROS_DEBUG("debug show, total_feature: %d", feature.size());
+    ROS_DEBUG("idx,\t_id,\t_num,\tstart,\tsize");
+    int idx=0;
     for (auto &it: feature) {
         ROS_ASSERT(it.feature_per_frame.size() != 0);
         ROS_ASSERT(it.start_frame >= 0);
         ROS_ASSERT(it.used_num >= 0);
 
-        ROS_DEBUG("%d,%d,%d ", it.feature_id, it.used_num, it.start_frame);
+        ROS_DEBUG("%d,\t%d,\t%d,\t%d,\t%d ", idx++, it.feature_id, it.used_num, it.start_frame, it.feature_per_frame.size());
         int sum = 0;
         for (auto &j: it.feature_per_frame) {
-            ROS_DEBUG("%d,", int(j.is_used));
+           // ROS_DEBUG("%d,", int(j.is_used));
             sum += j.is_used;
-            printf("(%lf,%lf) ", j.point(0), j.point(1));
+            //printf("(%lf,%lf) ", j.point(0), j.point(1));
         }
-        ROS_ASSERT(it.used_num == sum);
+//        ROS_DEBUG("used_num:%d, sum:%d ", it.used_num , sum);
     }
 }
 
