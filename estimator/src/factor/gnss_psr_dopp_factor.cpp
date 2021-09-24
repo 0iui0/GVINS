@@ -97,7 +97,7 @@ bool GnssPsrDoppFactor::Evaluate(double const *const *parameters, double *residu
     if (jacobians) {
         // J_Pi
         if (jacobians[0]) {
-            Eigen::Map <Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J_Pi(jacobians[0]);
+            Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J_Pi(jacobians[0]);
             J_Pi.setZero();
             J_Pi.topLeftCorner<1, 3>() = -rcv2sat_unit.transpose() * R_ecef_local * pr_weight * ratio;
 
@@ -119,7 +119,7 @@ bool GnssPsrDoppFactor::Evaluate(double const *const *parameters, double *residu
 
         // J_Vi
         if (jacobians[1]) {
-            Eigen::Map <Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J_Vi(jacobians[1]);
+            Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J_Vi(jacobians[1]);
             J_Vi.setZero();
             J_Vi.bottomLeftCorner<1, 3>() = rcv2sat_unit.transpose() * (-1.0) *
                                             R_ecef_local * dp_weight * ratio;
@@ -127,7 +127,7 @@ bool GnssPsrDoppFactor::Evaluate(double const *const *parameters, double *residu
 
         // J_Pj
         if (jacobians[2]) {
-            Eigen::Map <Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J_Pj(jacobians[2]);
+            Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J_Pj(jacobians[2]);
             J_Pj.setZero();
             J_Pj.topLeftCorner<1, 3>() = -rcv2sat_unit.transpose() * R_ecef_local * pr_weight * (1.0 - ratio);
 
@@ -149,7 +149,7 @@ bool GnssPsrDoppFactor::Evaluate(double const *const *parameters, double *residu
 
         // J_Vj
         if (jacobians[3]) {
-            Eigen::Map <Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J_Vj(jacobians[3]);
+            Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J_Vj(jacobians[3]);
             J_Vj.setZero();
             J_Vj.bottomLeftCorner<1, 3>() = rcv2sat_unit.transpose() * (-1.0) *
                                             R_ecef_local * dp_weight * (1.0 - ratio);
@@ -179,7 +179,7 @@ bool GnssPsrDoppFactor::Evaluate(double const *const *parameters, double *residu
 
         // J_ref_ecef, approximation for simplicity
         if (jacobians[7]) {
-            Eigen::Map <Eigen::Matrix<double, 2, 3, Eigen::RowMajor>> J_ref_ecef(jacobians[7]);
+            Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>> J_ref_ecef(jacobians[7]);
             J_ref_ecef.setZero();
             J_ref_ecef.row(0) = -rcv2sat_unit.transpose() * pr_weight;
         }

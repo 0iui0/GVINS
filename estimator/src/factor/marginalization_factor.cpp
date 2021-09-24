@@ -338,7 +338,7 @@ bool MarginalizationFactor::Evaluate(double const *const *parameters, double *re
             if (jacobians[i]) {
                 int size = marginalization_info->keep_block_size[i], local_size = marginalization_info->localSize(size);
                 int idx = marginalization_info->keep_block_idx[i] - m;
-                Eigen::Map <Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> jacobian(
+                Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> jacobian(
                         jacobians[i], n, size);
                 jacobian.setZero();
                 jacobian.leftCols(local_size) = marginalization_info->linearized_jacobians.middleCols(idx, local_size);

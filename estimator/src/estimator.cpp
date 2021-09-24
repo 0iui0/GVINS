@@ -653,8 +653,10 @@ void Estimator::solveOdometry() {
         return;
     if (solver_flag == NON_LINEAR) {
         TicToc t_tri;
+        // 三角化
         f_manager.triangulate(Ps, tic, ric);
         ROS_DEBUG("triangulation costs %f", t_tri.toc());
+        // 滑窗优化
         optimization();
         if (GNSS_ENABLE) {
             if (!gnss_ready) {
@@ -788,12 +790,13 @@ bool Estimator::failureDetection() {
     }
     return false;
 }
-
+// 优化了谁？
 void Estimator::optimization() {
     ceres::Problem problem;
     ceres::LossFunction *loss_function;
     //loss_function = new ceres::HuberLoss(1.0);
     loss_function = new ceres::CauchyLoss(1.0);
+    // AddParameterBlock 优化变量，滑窗内所有的位姿Twb、速度Ba Bg、外参，还有逆深度 para_Pose para_SpeedBias para_Ex_Pose para_Feature
     for (int i = 0; i < WINDOW_SIZE + 1; i++) {
         ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
         problem.AddParameterBlock(para_Pose[i], SIZE_POSE, local_parameterization);
@@ -841,7 +844,7 @@ void Estimator::optimization() {
 
     TicToc t_whole, t_prepare;
     vector2double();
-
+    // AddResidualBlock 误差项 marginalization_factor imu_factor ProjectionFactor
     if (first_optimization) {
         std::vector<double> anchor_value;
         for (uint32_t k = 0; k < 7; ++k)
@@ -854,8 +857,7 @@ void Estimator::optimization() {
     if (last_marginalization_info) {
         // construct new marginlization_factor
         MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_marginalization_info);
-        problem.AddResidualBlock(marginalization_factor, NULL,
-                                 last_marginalization_parameter_blocks);
+        problem.AddResidualBlock(marginalization_factor, NULL, last_marginalization_parameter_blocks);
     }
 
     for (int i = 0; i < WINDOW_SIZE; i++) {
@@ -939,12 +941,10 @@ void Estimator::optimization() {
                                                                   it_per_frame.velocity,
                                                                   it_per_id.feature_per_frame[0].cur_td,
                                                                   it_per_frame.cur_td);
-                problem.AddResidualBlock(f_td, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0],
-                                         para_Feature[feature_index], para_Td[0]);
+                problem.AddResidualBlock(f_td, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index], para_Td[0]);
             } else {
                 ProjectionFactor *f = new ProjectionFactor(pts_i, pts_j);
-                problem.AddResidualBlock(f, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0],
-                                         para_Feature[feature_index]);
+                problem.AddResidualBlock(f, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index]);
             }
             f_m_cnt++;
         }
@@ -992,29 +992,24 @@ void Estimator::optimization() {
                     drop_set.push_back(i);
             }
             // construct new marginlization_factor
-            MarginalizationFactor *marginalization_factor = new MarginalizationFactor(
-                    last_marginalization_info);
-            ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(
-                    marginalization_factor, NULL, last_marginalization_parameter_blocks, drop_set);
+            MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_marginalization_info);
+            ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(marginalization_factor, NULL, last_marginalization_parameter_blocks, drop_set);
             marginalization_info->addResidualBlockInfo(residual_block_info);
         } else {
             std::vector<double> anchor_value;
             for (uint32_t k = 0; k < 7; ++k)
                 anchor_value.push_back(para_Pose[0][k]);
             PoseAnchorFactor *pose_anchor_factor = new PoseAnchorFactor(anchor_value);
-            ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(pose_anchor_factor,
-                                                                           NULL, vector<double *>{para_Pose[0]},
-                                                                           vector<int>{0});
+            ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(pose_anchor_factor, NULL, vector<double *>{para_Pose[0]}, vector<int>{0});
             marginalization_info->addResidualBlockInfo(residual_block_info);
         }
 
         {
             if (pre_integrations[1]->sum_dt < 10.0) {
                 IMUFactor *imu_factor = new IMUFactor(pre_integrations[1]);
-                ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(imu_factor, NULL,
-                                                                               vector<double *>
-                                                                               {para_Pose[0], para_SpeedBias[0],
-                                                                                para_Pose[1], para_SpeedBias[1]},
+                ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(imu_factor,
+                                                                               NULL,
+                                                                               vector<double *>{para_Pose[0], para_SpeedBias[0], para_Pose[1], para_SpeedBias[1]},
                                                                                vector<int>{0, 1});
                 marginalization_info->addResidualBlockInfo(residual_block_info);
             }
@@ -1098,23 +1093,14 @@ void Estimator::optimization() {
                                                                           it_per_frame.cur_td);
                         ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(f_td,
                                                                                        loss_function,
-                                                                                       vector<double *>
-                                                                                       {para_Pose[imu_i],
-                                                                                        para_Pose[imu_j],
-                                                                                        para_Ex_Pose[0],
-                                                                                        para_Feature[feature_index],
-                                                                                        para_Td[0]},
+                                                                                       vector<double *>{para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index], para_Td[0]},
                                                                                        vector<int>{0, 3});
                         marginalization_info->addResidualBlockInfo(residual_block_info);
                     } else {
                         ProjectionFactor *f = new ProjectionFactor(pts_i, pts_j);
                         ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(f,
                                                                                        loss_function,
-                                                                                       vector<double *>
-                                                                                       {para_Pose[imu_i],
-                                                                                        para_Pose[imu_j],
-                                                                                        para_Ex_Pose[0],
-                                                                                        para_Feature[feature_index]},
+                                                                                       vector<double *>{para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index]},
                                                                                        vector<int>{0, 3});
                         marginalization_info->addResidualBlockInfo(residual_block_info);
                     }
@@ -1225,11 +1211,13 @@ void Estimator::optimization() {
 
 void Estimator::slideWindow() {
     TicToc t_margin;
+    // 边缘化掉最老帧；或者次新帧
     if (marginalization_flag == MARGIN_OLD) {
         double t_0 = Headers[0].stamp.toSec();
         back_R0 = Rs[0];
         back_P0 = Ps[0];
         if (frame_count == WINDOW_SIZE) {
+            // 去掉最老帧
             for (int i = 0; i < WINDOW_SIZE; i++) {
                 Rs[i].swap(Rs[i + 1]);
 
@@ -1286,10 +1274,12 @@ void Estimator::slideWindow() {
                 all_image_frame.erase(t_0);
 
             }
+            // 保留最老帧看到的路标点，第0帧给第一帧；断开视觉约束，断开imu预计分约束
             slideWindowOld();
         }
     } else {
         if (frame_count == WINDOW_SIZE) {
+            // 去掉次新帧
             for (unsigned int i = 0; i < dt_buf[frame_count].size(); i++) {
                 double tmp_dt = dt_buf[frame_count][i];
                 Vector3d tmp_linear_acceleration = linear_acceleration_buf[frame_count][i];
@@ -1324,7 +1314,7 @@ void Estimator::slideWindow() {
             dt_buf[WINDOW_SIZE].clear();
             linear_acceleration_buf[WINDOW_SIZE].clear();
             angular_velocity_buf[WINDOW_SIZE].clear();
-
+            // 调整共视列表，次新帧看到的路标点，将10左移替换掉9；重新预积分8-10
             slideWindowNew();
         }
     }

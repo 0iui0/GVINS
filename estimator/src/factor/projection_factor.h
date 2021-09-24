@@ -6,7 +6,7 @@
 #include "../utility/utility.h"
 #include "../utility/tic_toc.h"
 #include "../parameters.h"
-
+// 重投影误差项 <误差项大小, T0(Twbi), T1(Twbj), Tbc, x0>
 class ProjectionFactor : public ceres::SizedCostFunction<2, 7, 7, 7, 1> {
 public:
     ProjectionFactor(const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j);
