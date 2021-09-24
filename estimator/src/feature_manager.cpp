@@ -228,10 +228,8 @@ void FeatureManager::removeOutlier() {
     }
 }
 
-void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R,
-                                          Eigen::Vector3d new_P) {
-    for (auto it = feature.begin(), it_next = feature.begin();
-         it != feature.end(); it = it_next) {
+void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P) {
+    for (auto it = feature.begin(), it_next = feature.begin(); it != feature.end(); it = it_next) {
         it_next++;
 
         if (it->start_frame != 0)
@@ -264,8 +262,7 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
 }
 
 void FeatureManager::removeBack() {
-    for (auto it = feature.begin(), it_next = feature.begin();
-         it != feature.end(); it = it_next) {
+    for (auto it = feature.begin(), it_next = feature.begin(); it != feature.end(); it = it_next) {
         it_next++;
 
         if (it->start_frame != 0)
