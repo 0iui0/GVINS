@@ -9,6 +9,7 @@
 #include "integration_base.h"
 
 #include <ceres/ceres.h>
+
 // IMU误差项 <误差项大小, T0, M0, T1, M1>
 class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9> {
 public:
@@ -61,7 +62,7 @@ public:
         residual = pre_integration->evaluate(Pi, Qi, Vi, Bai, Bgi,
                                              Pj, Qj, Vj, Baj, Bgj);
 
-        Eigen::Matrix<double, 15, 15> sqrt_info = Eigen::LLT<Eigen::Matrix<double, 15, 15>> (pre_integration->covariance.inverse()).matrixL().transpose();
+        Eigen::Matrix<double, 15, 15> sqrt_info = Eigen::LLT<Eigen::Matrix<double, 15, 15>>(pre_integration->covariance.inverse()).matrixL().transpose();
         //sqrt_info.setIdentity();
         residual = sqrt_info * residual;
 

@@ -91,7 +91,7 @@ void GlobalSFM::triangulateTwoFrames(int frame0, Eigen::Matrix<double, 3, 4> &Po
             sfm_f[j].position[0] = point_3d(0);
             sfm_f[j].position[1] = point_3d(1);
             sfm_f[j].position[2] = point_3d(2);
-            //cout << "trangulated : " << frame1 << "  3d point : "  << j << "  " << point_3d.transpose() << endl;
+            //cout << "triangulated : " << frame1 << "  3d point : "  << j << "  " << point_3d.transpose() << endl;
         }
     }
 }
@@ -139,8 +139,8 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
     Pose[frame_num - 1].block<3, 1>(0, 3) = c_Translation[frame_num - 1];
 
 
-    //1: trangulate between l ----- frame_num - 1
-    //2: solve pnp l + 1; trangulate l + 1 ------- frame_num - 1;
+    // 1: 三角化：参考帧5+当前帧10；triangulate between l(参考帧) ----- frame_num - 1
+    // 2: PnP->三角化：计算6-9的位姿；solve pnp l + 1; triangulate l + 1 ------- frame_num - 1;
     for (int i = l; i < frame_num - 1; i++) {
         // solve pnp
         if (i > l) {
@@ -155,13 +155,13 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
             Pose[i].block<3, 1>(0, 3) = c_Translation[i];
         }
 
-        // triangulate point based on the solve pnp result
+        // 三角化：[6-9]+参考帧; triangulate point based on the solve pnp result
         triangulateTwoFrames(i, Pose[i], frame_num - 1, Pose[frame_num - 1], sfm_f);
     }
-    //3: triangulate l-----l+1 l+2 ... frame_num -2
+    // 3: 三角化：参考帧+[6,9] triangulate l-----l+1 l+2 ... frame_num -2
     for (int i = l + 1; i < frame_num - 1; i++)
-        triangulateTwoFrames(l, Pose[l], i, Pose[i], sfm_f);
-    //4: solve pnp l-1; triangulate l-1 ----- l
+        triangulateTwoFrames(l, Pose[l], i, Pose[i], sfm_f); // 5-6；5-7；5-8；5-9
+    // 4: PnP->三角化：计算[4-0]的位姿；solve pnp l-1; triangulate l-1 ----- l
     //             l-2              l-2 ----- l
     for (int i = l - 1; i >= 0; i--) {
         //solve pnp
@@ -174,10 +174,10 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
         c_Quat[i] = c_Rotation[i];
         Pose[i].block<3, 3>(0, 0) = c_Rotation[i];
         Pose[i].block<3, 1>(0, 3) = c_Translation[i];
-        //triangulate
+        // 三角化[4-0]+参考帧；triangulate
         triangulateTwoFrames(i, Pose[i], l, Pose[l], sfm_f);
     }
-    //5: triangulate all other points
+    // 5: 三角化其他未恢复的点； triangulate all other points
     for (int j = 0; j < feature_num; j++) {
         if (sfm_f[j].state == true)
             continue;
@@ -210,10 +210,12 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
 		cout << "solvePnP  t" << " i " << i <<"  " << t_tmp.x() <<"  "<< t_tmp.y() <<"  "<< t_tmp.z() << endl;
 	}
 */
-    //full BA
+    // 6：BA：优化滑窗内所有位姿和路标点；full BA
+    // 固定参考帧l帧的旋转和平移 5；固定当前帧的平移 10
     ceres::Problem problem;
     ceres::LocalParameterization *local_parameterization = new ceres::QuaternionParameterization();
     //cout << " begin full BA " << endl;
+    // AddParameterBlock
     for (int i = 0; i < frame_num; i++) {
         //double array for ceres
         c_translation[i][0] = c_Translation[i].x();
@@ -232,20 +234,15 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
             problem.SetParameterBlockConstant(c_translation[i]);
         }
     }
-
+    // AddResidualBlock
     for (int i = 0; i < feature_num; i++) {
         if (sfm_f[i].state != true)
             continue;
         for (int j = 0; j < int(sfm_f[i].observation.size()); j++) {
             int l = sfm_f[i].observation[j].first;
-            ceres::CostFunction *cost_function = ReprojectionError3D::Create(
-                    sfm_f[i].observation[j].second.x(),
-                    sfm_f[i].observation[j].second.y());
-
-            problem.AddResidualBlock(cost_function, NULL, c_rotation[l], c_translation[l],
-                                     sfm_f[i].position);
+            ceres::CostFunction *cost_function = ReprojectionError3D::Create(sfm_f[i].observation[j].second.x(), sfm_f[i].observation[j].second.y());
+            problem.AddResidualBlock(cost_function, NULL, c_rotation[l], c_translation[l], sfm_f[i].position);
         }
-
     }
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::DENSE_SCHUR;
@@ -269,14 +266,13 @@ bool GlobalSFM::construct(int frame_num, Quaterniond *q, Vector3d *T, int l,
         //cout << "final  q" << " i " << i <<"  " <<q[i].w() << "  " << q[i].vec().transpose() << endl;
     }
     for (int i = 0; i < frame_num; i++) {
-
         T[i] = -1 * (q[i] * Vector3d(c_translation[i][0], c_translation[i][1], c_translation[i][2]));
         //cout << "final  t" << " i " << i <<"  " << T[i](0) <<"  "<< T[i](1) <<"  "<< T[i](2) << endl;
     }
     for (int i = 0; i < (int) sfm_f.size(); i++) {
-        if (sfm_f[i].state)
-            sfm_tracked_points[sfm_f[i].id] = Vector3d(sfm_f[i].position[0], sfm_f[i].position[1],
-                                                       sfm_f[i].position[2]);
+        if (sfm_f[i].state) {
+            sfm_tracked_points[sfm_f[i].id] = Vector3d(sfm_f[i].position[0], sfm_f[i].position[1], sfm_f[i].position[2]);
+        }
     }
     return true;
 

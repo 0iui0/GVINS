@@ -1,7 +1,6 @@
 #include "gnss_psr_dopp_factor.hpp"
 
-GnssPsrDoppFactor::GnssPsrDoppFactor(const ObsPtr &_obs, const EphemBasePtr &_ephem,
-                                     std::vector<double> &_iono_paras, const double _ratio)
+GnssPsrDoppFactor::GnssPsrDoppFactor(const ObsPtr &_obs, const EphemBasePtr &_ephem, std::vector<double> &_iono_paras, const double _ratio)
         : obs(_obs), ephem(_ephem), iono_paras(_iono_paras), ratio(_ratio) {
     freq = L1_freq(obs, &freq_idx);
     LOG_IF(FATAL, freq < 0) << "No L1 observation found.";
@@ -82,14 +81,11 @@ bool GnssPsrDoppFactor::Evaluate(double const *const *parameters, double *residu
     Eigen::Vector3d rcv2sat_unit = rcv2sat_ecef.normalized();
 
     const double psr_sagnac = EARTH_OMG_GPS * (sv_pos(0) * P_ecef(1) - sv_pos(1) * P_ecef(0)) / LIGHT_SPEED;
-    double psr_estimated = rcv2sat_ecef.norm() + psr_sagnac + rcv_dt - svdt * LIGHT_SPEED +
-                           ion_delay + tro_delay + tgd * LIGHT_SPEED;
+    double psr_estimated = rcv2sat_ecef.norm() + psr_sagnac + rcv_dt - svdt * LIGHT_SPEED + ion_delay + tro_delay + tgd * LIGHT_SPEED;
 
     residuals[0] = (psr_estimated - obs->psr[freq_idx]) * pr_weight;
 
-    const double dopp_sagnac = EARTH_OMG_GPS / LIGHT_SPEED * (sv_vel(0) * P_ecef(1) +
-                                                              sv_pos(0) * V_ecef(1) - sv_vel(1) * P_ecef(0) -
-                                                              sv_pos(1) * V_ecef(0));
+    const double dopp_sagnac = EARTH_OMG_GPS / LIGHT_SPEED * (sv_vel(0) * P_ecef(1) + sv_pos(0) * V_ecef(1) - sv_vel(1) * P_ecef(0) - sv_pos(1) * V_ecef(0));
     double dopp_estimated = (sv_vel - V_ecef).dot(rcv2sat_unit) + dopp_sagnac + rcv_ddt - svddt * LIGHT_SPEED;
     const double wavelength = LIGHT_SPEED / freq;
     residuals[1] = (dopp_estimated + obs->dopp[freq_idx] * wavelength) * dp_weight;
@@ -121,8 +117,7 @@ bool GnssPsrDoppFactor::Evaluate(double const *const *parameters, double *residu
         if (jacobians[1]) {
             Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J_Vi(jacobians[1]);
             J_Vi.setZero();
-            J_Vi.bottomLeftCorner<1, 3>() = rcv2sat_unit.transpose() * (-1.0) *
-                                            R_ecef_local * dp_weight * ratio;
+            J_Vi.bottomLeftCorner<1, 3>() = rcv2sat_unit.transpose() * (-1.0) * R_ecef_local * dp_weight * ratio;
         }
 
         // J_Pj
@@ -143,16 +138,14 @@ bool GnssPsrDoppFactor::Evaluate(double const *const *parameters, double *residu
                 }
             }
             unit2rcv_pos *= -1;
-            J_Pj.bottomLeftCorner<1, 3>() = (sv_vel - V_ecef).transpose() * unit2rcv_pos *
-                                            R_ecef_local * dp_weight * (1.0 - ratio);
+            J_Pj.bottomLeftCorner<1, 3>() = (sv_vel - V_ecef).transpose() * unit2rcv_pos * R_ecef_local * dp_weight * (1.0 - ratio);
         }
 
         // J_Vj
         if (jacobians[3]) {
             Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J_Vj(jacobians[3]);
             J_Vj.setZero();
-            J_Vj.bottomLeftCorner<1, 3>() = rcv2sat_unit.transpose() * (-1.0) *
-                                            R_ecef_local * dp_weight * (1.0 - ratio);
+            J_Vj.bottomLeftCorner<1, 3>() = rcv2sat_unit.transpose() * (-1.0) * R_ecef_local * dp_weight * (1.0 - ratio);
         }
 
         // J_rcv_dt

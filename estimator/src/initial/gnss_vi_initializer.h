@@ -43,7 +43,7 @@ private:
     std::vector<std::vector<SatStatePtr>> all_sat_states;
 
     static constexpr uint32_t
-    MAX_ITERATION = 10;
+            MAX_ITERATION = 10;
     static constexpr double CONVERGENCE_EPSILON = 1e-5;
 };
 

@@ -13,9 +13,13 @@
 const int NUM_THREADS = 4;
 
 struct ResidualBlockInfo {
-    ResidualBlockInfo(ceres::CostFunction *_cost_function, ceres::LossFunction *_loss_function,
-                      std::vector<double *> _parameter_blocks, std::vector<int> _drop_set)
-            : cost_function(_cost_function), loss_function(_loss_function), parameter_blocks(_parameter_blocks),
+    ResidualBlockInfo(ceres::CostFunction *_cost_function,
+                      ceres::LossFunction *_loss_function,
+                      std::vector<double *> _parameter_blocks,
+                      std::vector<int> _drop_set)
+            : cost_function(_cost_function),
+              loss_function(_loss_function),
+              parameter_blocks(_parameter_blocks),
               drop_set(_drop_set) {}
 
     void Evaluate();
@@ -59,11 +63,11 @@ public:
     std::vector<double *> getParameterBlocks(std::unordered_map<long, double *> &addr_shift);
 
     std::vector<ResidualBlockInfo *> factors;
-    int m, n;
-    std::unordered_map<long, int> parameter_block_size; //global size
+    int m, n; //要边缘化掉的变量总维度，需要保留的变量的总维度
+    std::unordered_map<long, int> parameter_block_size; //global size 每个变量的维度
     int sum_block_size;
-    std::unordered_map<long, int> parameter_block_idx; //local size
-    std::unordered_map<long, double *> parameter_block_data;
+    std::unordered_map<long, int> parameter_block_idx; //local size 每个变量在H矩阵中的索引
+    std::unordered_map<long, double *> parameter_block_data; //每个变量的数据
 
     std::vector<int> keep_block_size; //global size
     std::vector<int> keep_block_idx;  //local size
@@ -72,7 +76,6 @@ public:
     Eigen::MatrixXd linearized_jacobians;
     Eigen::VectorXd linearized_residuals;
     const double eps = 1e-8;
-
 };
 
 class MarginalizationFactor : public ceres::CostFunction {

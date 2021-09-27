@@ -5,9 +5,8 @@ double ProjectionTdFactor::sum_t;
 
 ProjectionTdFactor::ProjectionTdFactor(const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j,
                                        const Eigen::Vector2d &_velocity_i, const Eigen::Vector2d &_velocity_j,
-                                       const double _td_i, const double _td_j) :
-        pts_i(_pts_i), pts_j(_pts_j),
-        td_i(_td_i), td_j(_td_j) {
+                                       const double _td_i, const double _td_j)
+        : pts_i(_pts_i), pts_j(_pts_j), td_i(_td_i), td_j(_td_j) {
     velocity_i.x() = _velocity_i.x();
     velocity_i.y() = _velocity_i.y();
     velocity_i.z() = 0;
@@ -111,8 +110,9 @@ bool ProjectionTdFactor::Evaluate(double const *const *parameters, double *resid
             jaco_ex.leftCols<3>() = ric.transpose() * (Rj.transpose() * Ri - Eigen::Matrix3d::Identity());
             Eigen::Matrix3d tmp_r = ric.transpose() * Rj.transpose() * Ri * ric;
             jaco_ex.rightCols<3>() =
-                    -tmp_r * Utility::skewSymmetric(pts_camera_i) + Utility::skewSymmetric(tmp_r * pts_camera_i) +
-                    Utility::skewSymmetric(ric.transpose() * (Rj.transpose() * (Ri * tic + Pi - Pj) - tic));
+                    -tmp_r * Utility::skewSymmetric(pts_camera_i)
+                    + Utility::skewSymmetric(tmp_r * pts_camera_i)
+                    + Utility::skewSymmetric(ric.transpose() * (Rj.transpose() * (Ri * tic + Pi - Pj) - tic));
             jacobian_ex_pose.leftCols<6>() = reduce * jaco_ex;
             jacobian_ex_pose.rightCols<1>().setZero();
         }
@@ -123,8 +123,7 @@ bool ProjectionTdFactor::Evaluate(double const *const *parameters, double *resid
         }
         if (jacobians[4]) {
             Eigen::Map<Eigen::Vector2d> jacobian_td(jacobians[4]);
-            jacobian_td = reduce * ric.transpose() * Rj.transpose() * Ri * ric * velocity_i / inv_dep_i * -1.0 +
-                          sqrt_info * velocity_j.head(2);
+            jacobian_td = reduce * ric.transpose() * Rj.transpose() * Ri * ric * velocity_i / inv_dep_i * -1.0 + sqrt_info * velocity_j.head(2);
         }
     }
     sum_t += tic_toc.toc();
@@ -145,14 +144,14 @@ void ProjectionTdFactor::check(double **parameters) {
 
     puts("my");
 
-    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 1 >> (res).transpose() << std::endl
-                                                           << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[0]) << std::endl
-                                                                            << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[1]) << std::endl
-                                                                            << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[2]) << std::endl
-                                                                            << std::endl;
+    std::cout << Eigen::Map<Eigen::Matrix<double, 2, 1 >>(res).transpose() << std::endl
+              << std::endl;
+    std::cout << Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor >>(jaco[0]) << std::endl
+              << std::endl;
+    std::cout << Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor >>(jaco[1]) << std::endl
+              << std::endl;
+    std::cout << Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor >>(jaco[2]) << std::endl
+              << std::endl;
     std::cout << Eigen::Map<Eigen::Vector2d>(jaco[3]) << std::endl
               << std::endl;
     std::cout << Eigen::Map<Eigen::Vector2d>(jaco[4]) << std::endl

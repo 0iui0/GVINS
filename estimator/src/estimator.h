@@ -51,7 +51,7 @@ public:
     void inputGNSSTimeDiff(const double t_diff);
 
     void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const std_msgs::Header &header);
-    // internal
+
     void clearState();
 
     bool initialStructure();
@@ -126,9 +126,9 @@ public:
     std::vector<ObsPtr> gnss_meas_buf[(WINDOW_SIZE + 1)];
     std::vector<EphemBasePtr> gnss_ephem_buf[(WINDOW_SIZE + 1)];
     std::vector<double> latest_gnss_iono_params;
-    std::map <uint32_t, std::vector<EphemBasePtr>> sat2ephem;
-    std::map <uint32_t, std::map<double, size_t>> sat2time_index;
-    std::map <uint32_t, uint32_t> sat_track_status;
+    std::map<uint32_t, std::vector<EphemBasePtr>> sat2ephem;
+    std::map<uint32_t, std::map<double, size_t>> sat2time_index;
+    std::map<uint32_t, uint32_t> sat_track_status;
     double para_anc_ecef[3];
     double para_yaw_enu_local[1];
     double para_rcv_dt[(WINDOW_SIZE + 1) * 4];

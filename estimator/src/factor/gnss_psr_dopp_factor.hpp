@@ -26,10 +26,10 @@ using namespace gnss_comm;
 class GnssPsrDoppFactor : public ceres::SizedCostFunction<2, 7, 9, 7, 9, 1, 1, 1, 3> {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     GnssPsrDoppFactor() = delete;
 
-    GnssPsrDoppFactor(const ObsPtr &_obs, const EphemBasePtr &_ephem, std::vector<double> &_iono_paras,
-                      const double _ratio);
+    GnssPsrDoppFactor(const ObsPtr &_obs, const EphemBasePtr &_ephem, std::vector<double> &_iono_paras, const double _ratio);
 
     virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
 

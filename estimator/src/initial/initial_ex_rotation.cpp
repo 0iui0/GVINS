@@ -48,7 +48,7 @@ bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> c
         A.block<4, 4>((i - 1) * 4, 0) = huber * (L - R);
     }
 
-    JacobiSVD <MatrixXd> svd(A, ComputeFullU | ComputeFullV);
+    JacobiSVD<MatrixXd> svd(A, ComputeFullU | ComputeFullV);
     Matrix<double, 4, 1> x = svd.matrixV().col(3);
     Quaterniond estimated_R(x);
     ric = estimated_R.toRotationMatrix().inverse();

@@ -14,6 +14,7 @@
 class PosVelFactor : public ceres::SizedCostFunction<3, 7, 7, 9, 9> {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     PosVelFactor() = delete;
 
     PosVelFactor(const double delta_t_);

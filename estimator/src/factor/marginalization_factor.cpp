@@ -78,6 +78,7 @@ MarginalizationInfo::~MarginalizationInfo() {
     }
 }
 
+// 加因子
 void MarginalizationInfo::addResidualBlockInfo(ResidualBlockInfo *residual_block_info) {
     factors.emplace_back(residual_block_info);
 
@@ -96,10 +97,10 @@ void MarginalizationInfo::addResidualBlockInfo(ResidualBlockInfo *residual_block
     }
 }
 
+// 预处理：计算每个因子对应的变量parameter_blocks、误差项residuals、雅可比矩阵jacobians；变量放到中parameter_block_data
 void MarginalizationInfo::preMarginalize() {
     for (auto it: factors) {
         it->Evaluate();
-
         std::vector<int> block_sizes = it->cost_function->parameter_block_sizes();
         for (int i = 0; i < static_cast<int>(block_sizes.size()); i++) {
             long addr = reinterpret_cast<long>(it->parameter_blocks[i]);
@@ -121,6 +122,7 @@ int MarginalizationInfo::globalSize(int size) const {
     return size == 6 ? 7 : size;
 }
 
+// 如何构建边缘化的Hessian矩阵？
 void *ThreadsConstructA(void *threadsstruct) {
     ThreadsStruct *p = ((ThreadsStruct *) threadsstruct);
     for (auto it: p->sub_factors) {
@@ -136,9 +138,10 @@ void *ThreadsConstructA(void *threadsstruct) {
                 if (size_j == 7)
                     size_j = 6;
                 Eigen::MatrixXd jacobian_j = it->jacobians[j].leftCols(size_j);
-                if (i == j)
+                // 对角线元素：H_ij=(de/dx_i)^T*(de/dx_j)
+                if (i == j) {
                     p->A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
-                else {
+                } else {
                     p->A.block(idx_i, idx_j, size_i, size_j) += jacobian_i.transpose() * jacobian_j;
                     p->A.block(idx_j, idx_i, size_j, size_i) = p->A.block(idx_i, idx_j, size_i, size_j).transpose();
                 }
@@ -149,24 +152,21 @@ void *ThreadsConstructA(void *threadsstruct) {
     return threadsstruct;
 }
 
+// 进行边缘化：构建Hessian矩阵、Schur掉需要marg的变量、得到剩余的约束，即就是边缘化约束(先验约束)
 void MarginalizationInfo::marginalize() {
     int pos = 0;
     for (auto &it: parameter_block_idx) {
         it.second = pos;
-        pos += localSize(parameter_block_size[it.first]);
+        pos += localSize(parameter_block_size[it.first]); // 计算每个变量的localSize，累加得到需要边缘化掉的m
     }
-
     m = pos;
-
     for (const auto &it: parameter_block_size) {
         if (parameter_block_idx.find(it.first) == parameter_block_idx.end()) {
             parameter_block_idx[it.first] = pos;
             pos += localSize(it.second);
         }
     }
-
     n = pos - m;
-
     //ROS_DEBUG("marginalization, pos: %d, m: %d, n: %d, size: %d", pos, m, n, (int)parameter_block_idx.size());
 
     TicToc t_summing;
@@ -200,9 +200,7 @@ void MarginalizationInfo::marginalize() {
     }
     ROS_INFO("summing up costs %f ms", t_summing.toc());
     */
-    //multi thread
-
-
+    //multi thread 构建Hessian矩阵
     TicToc t_thread_summing;
     pthread_t tids[NUM_THREADS];
     ThreadsStruct threadsstruct[NUM_THREADS];
@@ -218,6 +216,7 @@ void MarginalizationInfo::marginalize() {
         threadsstruct[i].b = Eigen::VectorXd::Zero(pos);
         threadsstruct[i].parameter_block_size = parameter_block_size;
         threadsstruct[i].parameter_block_idx = parameter_block_idx;
+        // 多线程构建Hessian
         int ret = pthread_create(&tids[i], NULL, ThreadsConstructA, (void *) &(threadsstruct[i]));
         if (ret != 0) {
             ROS_WARN("pthread_create error");
@@ -235,15 +234,13 @@ void MarginalizationInfo::marginalize() {
 
     //TODO
     Eigen::MatrixXd Amm = 0.5 * (A.block(0, 0, m, m) + A.block(0, 0, m, m).transpose());
-    Eigen::SelfAdjointEigenSolver <Eigen::MatrixXd> saes(Amm);
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> saes(Amm);
 
     //ROS_ASSERT_MSG(saes.eigenvalues().minCoeff() >= -1e-4, "min eigenvalue %f", saes.eigenvalues().minCoeff());
 
-    Eigen::MatrixXd Amm_inv = saes.eigenvectors() * Eigen::VectorXd(
-            (saes.eigenvalues().array() > eps).select(saes.eigenvalues().array().inverse(), 0)).asDiagonal() *
-                              saes.eigenvectors().transpose();
+    Eigen::MatrixXd Amm_inv = saes.eigenvectors() * Eigen::VectorXd((saes.eigenvalues().array() > eps).select(saes.eigenvalues().array().inverse(), 0)).asDiagonal() * saes.eigenvectors().transpose();
     //printf("error1: %f\n", (Amm * Amm_inv - Eigen::MatrixXd::Identity(m, m)).sum());
-
+    // 调用Schur补计算边缘化约束
     Eigen::VectorXd bmm = b.segment(0, m);
     Eigen::MatrixXd Amr = A.block(0, m, m, n);
     Eigen::MatrixXd Arm = A.block(m, 0, n, m);
@@ -252,10 +249,9 @@ void MarginalizationInfo::marginalize() {
     A = Arr - Arm * Amm_inv * Amr;
     b = brr - Arm * Amm_inv * bmm;
 
-    Eigen::SelfAdjointEigenSolver <Eigen::MatrixXd> saes2(A);
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> saes2(A);
     Eigen::VectorXd S = Eigen::VectorXd((saes2.eigenvalues().array() > eps).select(saes2.eigenvalues().array(), 0));
-    Eigen::VectorXd S_inv = Eigen::VectorXd(
-            (saes2.eigenvalues().array() > eps).select(saes2.eigenvalues().array().inverse(), 0));
+    Eigen::VectorXd S_inv = Eigen::VectorXd((saes2.eigenvalues().array() > eps).select(saes2.eigenvalues().array().inverse(), 0));
 
     Eigen::VectorXd S_sqrt = S.cwiseSqrt();
     Eigen::VectorXd S_inv_sqrt = S_inv.cwiseSqrt();
@@ -288,8 +284,7 @@ std::vector<double *> MarginalizationInfo::getParameterBlocks(std::unordered_map
     return keep_block_addr;
 }
 
-MarginalizationFactor::MarginalizationFactor(MarginalizationInfo *_marginalization_info) : marginalization_info(
-        _marginalization_info) {
+MarginalizationFactor::MarginalizationFactor(MarginalizationInfo *_marginalization_info) : marginalization_info(_marginalization_info) {
     int cnt = 0;
     for (auto it: marginalization_info->keep_block_size) {
         mutable_parameter_block_sizes()->push_back(it);
@@ -320,13 +315,11 @@ bool MarginalizationFactor::Evaluate(double const *const *parameters, double *re
             dx.segment(idx, size) = x - x0;
         else {
             dx.segment<3>(idx + 0) = x.head<3>() - x0.head<3>();
-            dx.segment<3>(idx + 3) = 2.0 * Utility::positify(Eigen::Quaterniond(x0(6), x0(3), x0(4), x0(5)).inverse() *
-                                                             Eigen::Quaterniond(x(6), x(3), x(4), x(5))).vec();
-            if (!((Eigen::Quaterniond(x0(6), x0(3), x0(4), x0(5)).inverse() *
-                   Eigen::Quaterniond(x(6), x(3), x(4), x(5))).w() >= 0)) {
-                dx.segment<3>(idx + 3) = 2.0 * -Utility::positify(
-                        Eigen::Quaterniond(x0(6), x0(3), x0(4), x0(5)).inverse() *
-                        Eigen::Quaterniond(x(6), x(3), x(4), x(5))).vec();
+            dx.segment<3>(idx + 3) =
+                    2.0 * Utility::positify(Eigen::Quaterniond(x0(6), x0(3), x0(4), x0(5)).inverse() * Eigen::Quaterniond(x(6), x(3), x(4), x(5))).vec();
+            if (!((Eigen::Quaterniond(x0(6), x0(3), x0(4), x0(5)).inverse() * Eigen::Quaterniond(x(6), x(3), x(4), x(5))).w() >= 0)) {
+                dx.segment<3>(idx + 3) =
+                        2.0 * -Utility::positify(Eigen::Quaterniond(x0(6), x0(3), x0(4), x0(5)).inverse() * Eigen::Quaterniond(x(6), x(3), x(4), x(5))).vec();
             }
         }
     }
@@ -338,8 +331,7 @@ bool MarginalizationFactor::Evaluate(double const *const *parameters, double *re
             if (jacobians[i]) {
                 int size = marginalization_info->keep_block_size[i], local_size = marginalization_info->localSize(size);
                 int idx = marginalization_info->keep_block_idx[i] - m;
-                Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> jacobian(
-                        jacobians[i], n, size);
+                Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> jacobian(jacobians[i], n, size);
                 jacobian.setZero();
                 jacobian.leftCols(local_size) = marginalization_info->linearized_jacobians.middleCols(idx, local_size);
             }

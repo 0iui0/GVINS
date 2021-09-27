@@ -4,7 +4,7 @@ int FeaturePerId::endFrame() {
     return start_frame + feature_per_frame.size() - 1;
 }
 
-FeatureManager::FeatureManager(Matrix3d _Rs[]): Rs(_Rs) {
+FeatureManager::FeatureManager(Matrix3d _Rs[]) : Rs(_Rs) {
     for (int i = 0; i < NUM_OF_CAM; i++)
         ric[i].setIdentity();
 }
@@ -29,14 +29,15 @@ int FeatureManager::getFeatureCount() {
     }
     return cnt;
 }
+
 // 当前帧与地图中的其他帧建立数据关联，若为已知点则加到共视关系中，否则新建特征点
 bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, double td) {
-    ROS_DEBUG("input feature: %d", (int)image.size());
+    ROS_DEBUG("input feature: %d", (int) image.size());
     ROS_DEBUG("num of feature: %d", getFeatureCount());
     double parallax_sum = 0;
     int parallax_num = 0;
     last_track_num = 0;
-    for (auto &id_pts : image) {
+    for (auto &id_pts: image) {
         FeaturePerFrame f_per_fra(id_pts.second[0].second, td);
         int feature_id = id_pts.first;
         auto it = find_if(feature.begin(), feature.end(), [feature_id](const FeaturePerId &it) { return it.feature_id == feature_id; });
@@ -55,7 +56,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
     if (frame_count < 2 || last_track_num < 20)
         return true;
 
-    for (auto &it_per_id : feature) {
+    for (auto &it_per_id: feature) {
         if (it_per_id.start_frame <= frame_count - 2 && it_per_id.start_frame + int(it_per_id.feature_per_frame.size()) - 1 >= frame_count - 1) {
             parallax_sum += compensatedParallax2(it_per_id, frame_count);
             parallax_num++;
@@ -66,7 +67,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
         return true;
     } else {
         ROS_DEBUG("parallax_sum: %lf, parallax_num: %d", parallax_sum, parallax_num);
-        ROS_DEBUG("current parallax: %lf", parallax_sum / parallax_num *FOCAL_LENGTH);
+        ROS_DEBUG("current parallax: %lf", parallax_sum / parallax_num * FOCAL_LENGTH);
         // 看看平均视差是否超过一个阈值
         return parallax_sum / parallax_num >= MIN_PARALLAX;
     }
@@ -75,7 +76,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
 void FeatureManager::debugShow() {
     ROS_DEBUG("debug show, total_feature: %d", feature.size());
     ROS_DEBUG("idx,\t_id,\t_num,\tstart,\tsize");
-    int idx=0;
+    int idx = 0;
     for (auto &it: feature) {
         ROS_ASSERT(it.feature_per_frame.size() != 0);
         ROS_ASSERT(it.start_frame >= 0);
@@ -84,7 +85,7 @@ void FeatureManager::debugShow() {
         ROS_DEBUG("%d,\t%d,\t%d,\t%d,\t%d ", idx++, it.feature_id, it.used_num, it.start_frame, it.feature_per_frame.size());
         int sum = 0;
         for (auto &j: it.feature_per_frame) {
-           // ROS_DEBUG("%d,", int(j.is_used));
+            // ROS_DEBUG("%d,", int(j.is_used));
             sum += j.is_used;
             //printf("(%lf,%lf) ", j.point(0), j.point(1));
         }

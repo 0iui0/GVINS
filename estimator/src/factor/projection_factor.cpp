@@ -71,11 +71,11 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
         reduce = tangent_base * norm_jaco;
 #else
         reduce << 1. / dep_j,
-                  0,
-                  -pts_camera_j(0) / (dep_j * dep_j),
-                  0,
-                  1. / dep_j,
-                  -pts_camera_j(1) / (dep_j * dep_j);
+                0,
+                -pts_camera_j(0) / (dep_j * dep_j),
+                0,
+                1. / dep_j,
+                -pts_camera_j(1) / (dep_j * dep_j);
 #endif
         reduce = sqrt_info * reduce;
 
@@ -108,9 +108,10 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
             Eigen::Matrix<double, 3, 6> jaco_ex;
             jaco_ex.leftCols<3>() = ric.transpose() * (Rj.transpose() * Ri - Eigen::Matrix3d::Identity());
             Eigen::Matrix3d tmp_r = ric.transpose() * Rj.transpose() * Ri * ric;
-            jaco_ex.rightCols<3>() = -tmp_r * Utility::skewSymmetric(pts_camera_i)
-                                     + Utility::skewSymmetric(tmp_r * pts_camera_i)
-                                     + Utility::skewSymmetric(ric.transpose() * (Rj.transpose() * (Ri * tic + Pi - Pj) - tic));
+            jaco_ex.rightCols<3>() =
+                    -tmp_r * Utility::skewSymmetric(pts_camera_i)
+                    + Utility::skewSymmetric(tmp_r * pts_camera_i)
+                    + Utility::skewSymmetric(ric.transpose() * (Rj.transpose() * (Ri * tic + Pi - Pj) - tic));
             jacobian_ex_pose.leftCols<6>() = reduce * jaco_ex;
             jacobian_ex_pose.rightCols<1>().setZero();
         }
@@ -141,10 +142,10 @@ void ProjectionFactor::check(double **parameters) {
 
     puts("my");
 
-    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 1 >> (res).transpose() << std::endl << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[0]) << std::endl << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[1]) << std::endl << std::endl;
-    std::cout << Eigen::Map < Eigen::Matrix<double, 2, 7, Eigen::RowMajor >> (jaco[2]) << std::endl << std::endl;
+    std::cout << Eigen::Map<Eigen::Matrix<double, 2, 1 >>(res).transpose() << std::endl << std::endl;
+    std::cout << Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor >>(jaco[0]) << std::endl << std::endl;
+    std::cout << Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor >>(jaco[1]) << std::endl << std::endl;
+    std::cout << Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor >>(jaco[2]) << std::endl << std::endl;
     std::cout << Eigen::Map<Eigen::Vector2d>(jaco[3]) << std::endl << std::endl;
 
     Eigen::Vector3d Pi(parameters[0][0], parameters[0][1], parameters[0][2]);

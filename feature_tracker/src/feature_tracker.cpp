@@ -90,7 +90,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time) {
     if (EQUALIZE) {
         // 图像太暗或者太亮，提特征点比较难，所以均衡化一下;
         // 1、自适应局部直方图图像均衡化预处理--createCLAHE；增强对比度；主要思想是将图像的直方图分布变成近似均匀分布
-        cv::Ptr <cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
         TicToc t_c;
         clahe->apply(_img, img);
         ROS_DEBUG("CLAHE costs: %fms", t_c.toc());

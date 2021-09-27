@@ -47,11 +47,10 @@ void Estimator::clearState() {
     }
 
     solver_flag = INITIAL;
-    first_imu = false,
+    first_imu = false;
     sum_of_back = 0;
     sum_of_front = 0;
     frame_count = 0;
-    solver_flag = INITIAL;
     initial_timestamp = 0;
     all_image_frame.clear();
     td = TD;
@@ -65,7 +64,7 @@ void Estimator::clearState() {
     sat2time_index.clear();
     sat_track_status.clear();
     latest_gnss_iono_params.clear();
-    std::copy(GNSS_IONO_DEFAULT_PARAMS.begin(), GNSS_IONO_DEFAULT_PARAMS.end(),std::back_inserter(latest_gnss_iono_params));
+    std::copy(GNSS_IONO_DEFAULT_PARAMS.begin(), GNSS_IONO_DEFAULT_PARAMS.end(), std::back_inserter(latest_gnss_iono_params));
     diff_t_gnss_local = 0;
 
     first_optimization = true;
@@ -131,20 +130,21 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
     gyr_0 = angular_velocity;
 }
 
-void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const std_msgs::Header &header){
+void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const std_msgs::Header &header) {
     ROS_DEBUG("new image coming ------------------------------------------");
     ROS_DEBUG("Adding feature points %lu", image.size());
     // Step 1 将特征点信息加到f_manager这个特征点管理器中，同时进行是否关键帧的检查
-    if (f_manager.addFeatureCheckParallax(frame_count, image, td))
+    if (f_manager.addFeatureCheckParallax(frame_count, image, td)) {
         marginalization_flag = MARGIN_OLD;// 如果上一帧是关键帧，则滑窗中最老的帧就要被移出滑窗
-    else
+    } else {
         marginalization_flag = MARGIN_SECOND_NEW;// 否则移除上一帧
+    }
 
     ROS_DEBUG("this frame is--------------------%s", marginalization_flag ? "reject" : "accept");
     ROS_DEBUG("%s", marginalization_flag ? "Non-keyframe" : "Keyframe");
     ROS_DEBUG("Solving %d", frame_count);
     ROS_DEBUG("number of feature: %d", f_manager.getFeatureCount());
-    Headers[frame_count] =header;
+    Headers[frame_count] = header;
 
     // all_image_frame用来做初始化相关操作，他保留滑窗起始到当前的所有帧
     // 有一些帧会因为不是KF，被MARGIN_SECOND_NEW，但是及时较新的帧被margin，他也会保留在这个容器中，因为初始化要求使用所有的帧，而非只要KF
@@ -202,8 +202,9 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
             } else {
                 slideWindow();
             }
-        } else
+        } else {
             frame_count++;
+        }
     } else {
         TicToc t_solve;
         solveOdometry();
@@ -327,7 +328,7 @@ void Estimator::processGNSS(const std::vector<ObsPtr> &gnss_meas) {
 
 bool Estimator::initialStructure() {
     TicToc t_sfm;
-    //check imu observibility
+    //check imu observability
     {
         map<double, ImageFrame>::iterator frame_it;
         Vector3d sum_g;
@@ -357,6 +358,7 @@ bool Estimator::initialStructure() {
     Vector3d T[frame_count + 1];
     map<int, Vector3d> sfm_tracked_points;
     vector<SFMFeature> sfm_f;
+    // 滑窗内所有路标点放入sfm_f中
     for (auto &it_per_id: f_manager.feature) {
         int imu_j = it_per_id.start_frame - 1;
         SFMFeature tmp_feature;
@@ -369,6 +371,7 @@ bool Estimator::initialStructure() {
         }
         sfm_f.push_back(tmp_feature);
     }
+    // 1。relativePose 找参考帧，解基础矩阵
     Matrix3d relative_R;
     Vector3d relative_T;
     int l;
@@ -376,6 +379,7 @@ bool Estimator::initialStructure() {
         ROS_INFO("Not enough features or parallax; Move device around");
         return false;
     }
+    // 2。sfm.construct 计算滑窗内的路标点和相机的位姿
     GlobalSFM sfm;
     if (!sfm.construct(frame_count + 1, Q, T, l, relative_R, relative_T, sfm_f, sfm_tracked_points)) {
         ROS_DEBUG("global SFM failed!");
@@ -384,6 +388,7 @@ bool Estimator::initialStructure() {
     }
 
     //solve pnp for all frame
+    // 3。cv::solvePnP 计算所有位姿
     map<double, ImageFrame>::iterator frame_it;
     map<int, Vector3d>::iterator it;
     frame_it = all_image_frame.begin();
@@ -443,7 +448,7 @@ bool Estimator::initialStructure() {
         frame_it->second.R = R_pnp * RIC[0].transpose();
         frame_it->second.T = T_pnp;
     }
-
+    // 4。visualInitialAlign 视觉和IMU对齐
     if (!visualInitialAlign()) {
         ROS_WARN("misalign visual structure with IMU");
         return false;
@@ -621,11 +626,12 @@ void Estimator::updateGNSSStatistics() {
     ecef_pos = anc_ecef + R_ecef_enu * enu_pos;
 }
 
-
+// 寻找与当前帧的共视点数较多、且视差量较大的作为参考帧；通过2D-2D对极约束，求解基础矩阵，计算出当前帧到参考帧的相对位姿
 bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l) {
-    // find previous frame which contians enough correspondance and parallex with newest frame
+    // find previous frame which contains enough correspondence and parallax with the newest frame
     for (int i = 0; i < WINDOW_SIZE; i++) {
         vector<pair<Vector3d, Vector3d>> corres;
+        // 1.找参考帧
         corres = f_manager.getCorresponding(i, WINDOW_SIZE);
         if (corres.size() > 20) {
             double sum_parallax = 0;
@@ -635,13 +641,12 @@ bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
                 Vector2d pts_1(corres[j].second(0), corres[j].second(1));
                 double parallax = (pts_0 - pts_1).norm();
                 sum_parallax = sum_parallax + parallax;
-
             }
             average_parallax = 1.0 * sum_parallax / int(corres.size());
+            // 2.求解基础矩阵
             if (average_parallax * 460 > 30 && m_estimator.solveRelativeRT(corres, relative_R, relative_T)) {
                 l = i;
-                ROS_DEBUG("average_parallax %f choose l %d and newest frame to triangulate the whole structure",
-                          average_parallax * 460, l);
+                ROS_DEBUG("average_parallax %f choose l %d and newest frame to triangulate the whole structure", average_parallax * 460, l);
                 return true;
             }
         }
@@ -791,13 +796,14 @@ bool Estimator::failureDetection() {
     }
     return false;
 }
+
 // 优化了谁？
 void Estimator::optimization() {
     ceres::Problem problem;
     ceres::LossFunction *loss_function;
     //loss_function = new ceres::HuberLoss(1.0);
     loss_function = new ceres::CauchyLoss(1.0);
-    // AddParameterBlock 优化变量，滑窗内所有的位姿Twb、速度Ba Bg、外参，还有逆深度 para_Pose para_SpeedBias para_Ex_Pose para_Feature
+    // 1。AddParameterBlock 优化变量，滑窗内所有的位姿Twb、速度Ba Bg、外参，还有逆深度 para_Pose para_SpeedBias para_Ex_Pose para_Feature
     for (int i = 0; i < WINDOW_SIZE + 1; i++) {
         ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
         problem.AddParameterBlock(para_Pose[i], SIZE_POSE, local_parameterization);
@@ -845,7 +851,7 @@ void Estimator::optimization() {
 
     TicToc t_whole, t_prepare;
     vector2double();
-    // AddResidualBlock 误差项 marginalization_factor imu_factor ProjectionFactor
+    // 2。AddResidualBlock 误差项 marginalization_factor imu_factor ProjectionFactor
     if (first_optimization) {
         std::vector<double> anchor_value;
         for (uint32_t k = 0; k < 7; ++k)
@@ -962,15 +968,17 @@ void Estimator::optimization() {
     //options.use_explicit_schur_complement = true;
     // options.minimizer_progress_to_stdout = true;
     options.use_nonmonotonic_steps = true;
-    if (marginalization_flag == MARGIN_OLD)
+    if (marginalization_flag == MARGIN_OLD) {
         options.max_solver_time_in_seconds = SOLVER_TIME * 4.0 / 5.0;
-    else
+    } else {
         options.max_solver_time_in_seconds = SOLVER_TIME;
+    }
     TicToc t_solver;
     ceres::Solver::Summary summary;
+    // 3。解
     ceres::Solve(options, &problem, &summary);
-    // cout << summary.BriefReport() << endl;
-    // cout << summary.FullReport() << endl;
+    cout << summary.BriefReport() << endl;
+    cout << summary.FullReport() << endl;
     ROS_DEBUG("Iterations : %d", static_cast<int>(summary.iterations.size()));
     ROS_DEBUG("solver costs: %f", t_solver.toc());
 
@@ -981,10 +989,12 @@ void Estimator::optimization() {
     double2vector();
 
     TicToc t_whole_marginalization;
+    // 4。边缘化
     if (marginalization_flag == MARGIN_OLD) {
+        // 新建边缘化
         MarginalizationInfo *marginalization_info = new MarginalizationInfo();
         vector2double();
-
+        // 边缘化因子；上次边缘化过，
         if (last_marginalization_info) {
             vector<int> drop_set;
             for (int i = 0; i < static_cast<int>(last_marginalization_parameter_blocks.size()); i++) {
@@ -1004,18 +1014,18 @@ void Estimator::optimization() {
             ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(pose_anchor_factor, NULL, vector<double *>{para_Pose[0]}, vector<int>{0});
             marginalization_info->addResidualBlockInfo(residual_block_info);
         }
-
+        // IMU因子
         {
             if (pre_integrations[1]->sum_dt < 10.0) {
                 IMUFactor *imu_factor = new IMUFactor(pre_integrations[1]);
                 ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(imu_factor,
                                                                                NULL,
-                                                                               vector<double *>{para_Pose[0], para_SpeedBias[0], para_Pose[1], para_SpeedBias[1]},
-                                                                               vector<int>{0, 1});
+                                                                               vector<double *>{para_Pose[0], para_SpeedBias[0], para_Pose[1], para_SpeedBias[1]},//T0，M0，T1，M1
+                                                                               vector<int>{0, 1});//边缘化掉T0 M0
                 marginalization_info->addResidualBlockInfo(residual_block_info);
             }
         }
-
+        // gnss因子
         if (gnss_ready) {
             for (uint32_t j = 0; j < gnss_meas_buf[0].size(); ++j) {
                 const uint32_t sys = satsys(gnss_meas_buf[0][j]->sat, NULL);
@@ -1032,14 +1042,14 @@ void Estimator::optimization() {
                                                                        ts_ratio);
                 ResidualBlockInfo *psr_dopp_residual_block_info = new ResidualBlockInfo(gnss_factor, NULL,
                                                                                         vector<double *>
-                                                                                        {para_Pose[0],
-                                                                                         para_SpeedBias[0],
-                                                                                         para_Pose[1],
-                                                                                         para_SpeedBias[1],
-                                                                                         para_rcv_dt + sys_idx,
-                                                                                         para_rcv_ddt,
-                                                                                         para_yaw_enu_local,
-                                                                                         para_anc_ecef},
+                                                                                                {para_Pose[0],
+                                                                                                 para_SpeedBias[0],
+                                                                                                 para_Pose[1],
+                                                                                                 para_SpeedBias[1],
+                                                                                                 para_rcv_dt + sys_idx,
+                                                                                                 para_rcv_ddt,
+                                                                                                 para_yaw_enu_local,
+                                                                                                 para_anc_ecef},
                                                                                         vector<int>{0, 1, 4, 5});
                 marginalization_info->addResidualBlockInfo(psr_dopp_residual_block_info);
             }
@@ -1049,9 +1059,9 @@ void Estimator::optimization() {
                 DtDdtFactor *dt_ddt_factor = new DtDdtFactor(gnss_dt);
                 ResidualBlockInfo *dt_ddt_residual_block_info = new ResidualBlockInfo(dt_ddt_factor, NULL,
                                                                                       vector<double *>
-                                                                                      {para_rcv_dt + k,
-                                                                                       para_rcv_dt + 4 + k,
-                                                                                       para_rcv_ddt, para_rcv_ddt + 1},
+                                                                                              {para_rcv_dt + k,
+                                                                                               para_rcv_dt + 4 + k,
+                                                                                               para_rcv_ddt, para_rcv_ddt + 1},
                                                                                       vector<int>{0, 2});
                 marginalization_info->addResidualBlockInfo(dt_ddt_residual_block_info);
             }
@@ -1060,11 +1070,11 @@ void Estimator::optimization() {
             DdtSmoothFactor *ddt_smooth_factor = new DdtSmoothFactor(GNSS_DDT_WEIGHT);
             ResidualBlockInfo *ddt_smooth_residual_block_info = new ResidualBlockInfo(ddt_smooth_factor, NULL,
                                                                                       vector<double *>
-                                                                                      {para_rcv_ddt, para_rcv_ddt + 1},
+                                                                                              {para_rcv_ddt, para_rcv_ddt + 1},
                                                                                       vector<int>{0});
             marginalization_info->addResidualBlockInfo(ddt_smooth_residual_block_info);
         }
-
+        // 视觉因子
         {
             int feature_index = -1;
             for (auto &it_per_id: f_manager.feature) {
@@ -1101,8 +1111,9 @@ void Estimator::optimization() {
                         ProjectionFactor *f = new ProjectionFactor(pts_i, pts_j);
                         ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(f,
                                                                                        loss_function,
-                                                                                       vector<double *>{para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index]},
-                                                                                       vector<int>{0, 3});
+                                                                                       vector<double *>{para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0],
+                                                                                                        para_Feature[feature_index]},//imu_i T0帧；ium_j T1共视帧；外参Tbc；lambda逆深度；
+                                                                                       vector<int>{0, 3});//T0帧看到很多(42个路标点，又被其他帧看大)所以要都加到边缘化里面(共又142个视觉因子)，，
                         marginalization_info->addResidualBlockInfo(residual_block_info);
                     }
                 }
@@ -1110,10 +1121,12 @@ void Estimator::optimization() {
         }
 
         TicToc t_pre_margin;
+        // 边缘化预处理
         marginalization_info->preMarginalize();
         ROS_DEBUG("pre marginalization %f ms", t_pre_margin.toc());
 
         TicToc t_margin;
+        // 进行边缘化
         marginalization_info->marginalize();
         ROS_DEBUG("marginalization %f ms", t_margin.toc());
 
@@ -1125,8 +1138,9 @@ void Estimator::optimization() {
                 addr_shift[reinterpret_cast<long>(para_rcv_dt + i * 4 + k)] = para_rcv_dt + (i - 1) * 4 + k;
             addr_shift[reinterpret_cast<long>(para_rcv_ddt + i)] = para_rcv_ddt + i - 1;
         }
-        for (int i = 0; i < NUM_OF_CAM; i++)
+        for (int i = 0; i < NUM_OF_CAM; i++) {
             addr_shift[reinterpret_cast<long>(para_Ex_Pose[i])] = para_Ex_Pose[i];
+        }
         if (ESTIMATE_TD) {
             addr_shift[reinterpret_cast<long>(para_Td[0])] = para_Td[0];
         }
@@ -1134,14 +1148,13 @@ void Estimator::optimization() {
         addr_shift[reinterpret_cast<long>(para_anc_ecef)] = para_anc_ecef;
         vector<double *> parameter_blocks = marginalization_info->getParameterBlocks(addr_shift);
 
-        if (last_marginalization_info)
+        if (last_marginalization_info) {
             delete last_marginalization_info;
+        }
         last_marginalization_info = marginalization_info;
         last_marginalization_parameter_blocks = parameter_blocks;
-
     } else {
         if (last_marginalization_info && std::count(std::begin(last_marginalization_parameter_blocks), std::end(last_marginalization_parameter_blocks), para_Pose[WINDOW_SIZE - 1])) {
-
             MarginalizationInfo *marginalization_info = new MarginalizationInfo();
             vector2double();
             if (last_marginalization_info) {
@@ -1201,11 +1214,9 @@ void Estimator::optimization() {
                 delete last_marginalization_info;
             last_marginalization_info = marginalization_info;
             last_marginalization_parameter_blocks = parameter_blocks;
-
         }
     }
     ROS_DEBUG("whole marginalization costs: %f", t_whole_marginalization.toc());
-
     ROS_DEBUG("whole time for ceres: %f", t_whole.toc());
 }
 
@@ -1275,7 +1286,14 @@ void Estimator::slideWindow() {
 
             }
             // 保留最老帧看到的路标点，第0帧给第一帧；断开视觉约束，断开imu预计分约束
+            printf("边缘化最老前后\n");
+            printf("tag,\tf_id,\tstart_fr\n");
+            printf("%s,\t%d,\t%d\n", "b4", f_manager.feature.begin()->feature_id, f_manager.feature.begin()->start_frame);
+            printf("%s,\t%d,\t%d\n", "b4", (f_manager.feature.begin()++)->feature_id, (f_manager.feature.begin()++)->start_frame);
             slideWindowOld();
+            //边缘化最老之后
+            printf("%s,\t%d,\t%d\n", "af", f_manager.feature.begin()->feature_id, f_manager.feature.begin()->start_frame);
+            printf("%s,\t%d,\t%d\n", "af", (f_manager.feature.begin()++)->feature_id, (f_manager.feature.begin()++)->start_frame);
         }
     } else {
         if (frame_count == WINDOW_SIZE) {
@@ -1315,7 +1333,12 @@ void Estimator::slideWindow() {
             linear_acceleration_buf[WINDOW_SIZE].clear();
             angular_velocity_buf[WINDOW_SIZE].clear();
             // 调整共视列表，次新帧看到的路标点，将10左移替换掉9；重新预积分8-10
+            printf("边缘化次新帧前后\n");
+            printf("tag,\tf_id,\tstart_fr\n");
+            printf("%s,\t%d,\t%d\n", "b4", f_manager.feature.end()->feature_id, f_manager.feature.end()->start_frame);
             slideWindowNew();
+            //边缘化最老之前
+            printf("%s,\t%d,\t%d\n", "af", f_manager.feature.end()->feature_id, f_manager.feature.end()->start_frame);
         }
     }
 }

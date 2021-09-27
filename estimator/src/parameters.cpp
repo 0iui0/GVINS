@@ -102,7 +102,6 @@ void readParameters(ros::NodeHandle &n) {
         RIC.push_back(Eigen::Matrix3d::Identity());
         TIC.push_back(Eigen::Vector3d::Zero());
         EX_CALIB_RESULT_PATH = OUTPUT_DIR + "/extrinsic_parameter.csv";
-
     } else {
         if (ESTIMATE_EXTRINSIC == 1) {
             ROS_WARN(" Optimize extrinsic param around initial guess!");
@@ -124,7 +123,6 @@ void readParameters(ros::NodeHandle &n) {
         TIC.push_back(eigen_T);
         ROS_INFO_STREAM("Extrinsic_R : " << std::endl << RIC[0]);
         ROS_INFO_STREAM("Extrinsic_T : " << std::endl << TIC[0].transpose());
-
     }
 
     INIT_DEPTH = 5.0;

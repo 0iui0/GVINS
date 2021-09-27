@@ -13,7 +13,7 @@
 
 vector<uchar> r_status;
 vector<float> r_err;
-queue <sensor_msgs::ImageConstPtr> img_buf;
+queue<sensor_msgs::ImageConstPtr> img_buf;
 
 ros::Publisher pub_img, pub_match;
 ros::Publisher pub_restart;
@@ -89,7 +89,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg) {
             trackerData[i].readImage(ptr->image.rowRange(ROW * i, ROW * (i + 1)), img_msg->header.stamp.toSec());
         else {
             if (EQUALIZE) {
-                cv::Ptr <cv::CLAHE> clahe = cv::createCLAHE();
+                cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
                 clahe->apply(ptr->image.rowRange(ROW * i, ROW * (i + 1)), trackerData[i].cur_img);
             } else
                 trackerData[i].cur_img = ptr->image.rowRange(ROW * i, ROW * (i + 1));

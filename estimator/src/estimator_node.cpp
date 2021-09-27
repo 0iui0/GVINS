@@ -20,14 +20,14 @@ using namespace gnss_comm;
 
 #define MAX_GNSS_CAMERA_DELAY 0.05
 
-std::unique_ptr <Estimator> estimator_ptr;
+std::unique_ptr<Estimator> estimator_ptr;
 
 std::condition_variable con;
 double current_time = -1;
-queue <sensor_msgs::ImuConstPtr> imu_buf;
-queue <sensor_msgs::PointCloudConstPtr> feature_buf;
-queue <std::vector<ObsPtr>> gnss_meas_buf;
-queue <sensor_msgs::PointCloudConstPtr> relo_buf;
+queue<sensor_msgs::ImuConstPtr> imu_buf;
+queue<sensor_msgs::PointCloudConstPtr> feature_buf;
+queue<std::vector<ObsPtr>> gnss_meas_buf;
+queue<sensor_msgs::PointCloudConstPtr> relo_buf;
 int sum_of_wait = 0;
 
 std::mutex m_buf;
@@ -104,7 +104,7 @@ void update() {
     acc_0 = estimator_ptr->acc_0;
     gyr_0 = estimator_ptr->gyr_0;
 
-    queue <sensor_msgs::ImuConstPtr> tmp_imu_buf = imu_buf;
+    queue<sensor_msgs::ImuConstPtr> tmp_imu_buf = imu_buf;
     for (sensor_msgs::ImuConstPtr tmp_imu_msg; !tmp_imu_buf.empty(); tmp_imu_buf.pop())
         predict(tmp_imu_buf.front());
 
@@ -195,7 +195,7 @@ void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg) {
     last_imu_t = imu_msg->header.stamp.toSec();
 
     {
-        std::lock_guard <std::mutex> lg(m_state);
+        std::lock_guard<std::mutex> lg(m_state);
         predict(imu_msg);
         std_msgs::Header header = imu_msg->header;
         header.frame_id = "world";
@@ -262,7 +262,7 @@ void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg) {
 }
 
 void local_trigger_info_callback(const gvins::LocalSensorExternalTriggerConstPtr &trigger_msg) {
-    std::lock_guard <std::mutex> lg(m_time);
+    std::lock_guard<std::mutex> lg(m_time);
 
     if (next_pulse_time_valid) {
         time_diff_gnss_local = next_pulse_time - trigger_msg->header.stamp.toSec();
@@ -288,7 +288,7 @@ void gnss_tp_info_callback(const GnssTimePulseInfoMsgConstPtr &tp_msg) {
     }
     double gnss_ts = time2sec(tp_time);
 
-    std::lock_guard <std::mutex> lg(m_time);
+    std::lock_guard<std::mutex> lg(m_time);
     next_pulse_time = gnss_ts;
     next_pulse_time_valid = true;
 }
@@ -314,12 +314,12 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg) {
 
 void process() {
     while (true) {
-        std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr> , sensor_msgs::PointCloudConstPtr>> measurements;
+        std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>> measurements;
         std::vector<sensor_msgs::ImuConstPtr> imu_msg;
         sensor_msgs::PointCloudConstPtr img_msg;
         std::vector<ObsPtr> gnss_msg;
 
-        std::unique_lock <std::mutex> lk(m_buf);
+        std::unique_lock<std::mutex> lk(m_buf);
         con.wait(lk, [&] {
             // 若getMeasurements没有得到图像两帧之间的IMU，GNSS，则返回false，线程阻塞；此时wait()会自动调用m_buf.unlock()释放锁；使得imu和feature的回调线程继续push
             return getMeasurements(imu_msg, img_msg, gnss_msg);
@@ -374,7 +374,7 @@ void process() {
 
         TicToc t_s;
         // 特征点id->特征点信息 (ros img_msg--> image_map)
-        map <int, vector<pair<int, Eigen::Matrix<double, 7, 1 >>>> image;
+        map<int, vector<pair<int, Eigen::Matrix<double, 7, 1 >>>> image;
         for (unsigned int i = 0; i < img_msg->points.size(); i++) {
             int v = img_msg->channels[0].values[i] + 0.5;
             int feature_id = v / NUM_OF_CAM;

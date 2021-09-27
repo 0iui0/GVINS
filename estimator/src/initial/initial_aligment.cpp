@@ -1,5 +1,6 @@
 #include "initial_alignment.h"
 
+// 陀螺仪bias矫正并重新预积分
 void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs) {
     Matrix3d A;
     Vector3d b;
@@ -8,6 +9,7 @@ void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs)
     b.setZero();
     map<double, ImageFrame>::iterator frame_i;
     map<double, ImageFrame>::iterator frame_j;
+    // 求陀螺仪bias，假设它是固定的，视觉旋转和陀螺仪的旋转之差作为约束
     for (frame_i = all_image_frame.begin(); next(frame_i) != all_image_frame.end(); frame_i++) {
         frame_j = next(frame_i);
         MatrixXd tmp_A(3, 3);
@@ -19,20 +21,18 @@ void solveGyroscopeBias(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs)
         tmp_b = 2 * (frame_j->second.pre_integration->delta_q.inverse() * q_ij).vec();
         A += tmp_A.transpose() * tmp_A;
         b += tmp_A.transpose() * tmp_b;
-
     }
     delta_bg = A.ldlt().solve(b);
     ROS_WARN_STREAM("gyroscope bias initial calibration " << delta_bg.transpose());
 
     for (int i = 0; i <= WINDOW_SIZE; i++)
         Bgs[i] += delta_bg;
-
+    // 根据上面计算的bias重新预积分
     for (frame_i = all_image_frame.begin(); next(frame_i) != all_image_frame.end(); frame_i++) {
         frame_j = next(frame_i);
         frame_j->second.pre_integration->repropagate(Vector3d::Zero(), Bgs[0]);
     }
 }
-
 
 MatrixXd TangentBasis(Vector3d &g0) {
     Vector3d b, c;
@@ -48,12 +48,13 @@ MatrixXd TangentBasis(Vector3d &g0) {
     return bc;
 }
 
+// 因重力矢量的模固定为9.81007，故g改为2个自由度
 void RefineGravity(map<double, ImageFrame> &all_image_frame, Vector3d &g, VectorXd &x) {
     Vector3d g0 = g.normalized() * G.norm();
     Vector3d lx, ly;
     //VectorXd x;
     int all_frame_count = all_image_frame.size();
-    int n_state = all_frame_count * 3 + 2 + 1;
+    int n_state = all_frame_count * 3 + 2 + 1;// 优化变量总维度：v g s；帧总数为41，则总维度为41*3+2+1=126
 
     MatrixXd A{n_state, n_state};
     A.setZero();
@@ -118,9 +119,10 @@ void RefineGravity(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vector
     g = g0;
 }
 
+// 初始化速度、重力、尺度因子
 bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, VectorXd &x) {
     int all_frame_count = all_image_frame.size();
-    int n_state = all_frame_count * 3 + 3 + 1;
+    int n_state = all_frame_count * 3 + 3 + 1; // 优化变量总维度：v g s；帧总数为41，则总维度为41*3+3+1=127
 
     MatrixXd A{n_state, n_state};
     A.setZero();
@@ -143,9 +145,7 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
         tmp_A.block<3, 3>(0, 0) = -dt * Matrix3d::Identity();
         tmp_A.block<3, 3>(0, 6) = frame_i->second.R.transpose() * dt * dt / 2 * Matrix3d::Identity();
         tmp_A.block<3, 1>(0, 9) = frame_i->second.R.transpose() * (frame_j->second.T - frame_i->second.T) / 100.0;
-        tmp_b.block<3, 1>(0, 0) =
-                frame_j->second.pre_integration->delta_p + frame_i->second.R.transpose() * frame_j->second.R * TIC[0] -
-                TIC[0];
+        tmp_b.block<3, 1>(0, 0) = frame_j->second.pre_integration->delta_p + frame_i->second.R.transpose() * frame_j->second.R * TIC[0] - TIC[0];
         //cout << "delta_p   " << frame_j->second.pre_integration->delta_p.transpose() << endl;
         tmp_A.block<3, 3>(3, 0) = -Matrix3d::Identity();
         tmp_A.block<3, 3>(3, 3) = frame_i->second.R.transpose() * frame_j->second.R;
@@ -180,7 +180,7 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
     if (fabs(g.norm() - G.norm()) > 1.0 || s < 0) {
         return false;
     }
-
+    // 修正重力矢量
     RefineGravity(all_image_frame, g, x);
     s = (x.tail<1>())(0) / 100.0;
     (x.tail<1>())(0) = s;
@@ -192,9 +192,9 @@ bool LinearAlignment(map<double, ImageFrame> &all_image_frame, Vector3d &g, Vect
 }
 
 bool VisualIMUAlignment(map<double, ImageFrame> &all_image_frame, Vector3d *Bgs, Vector3d &g, VectorXd &x) {
-    solveGyroscopeBias(all_image_frame, Bgs);
+    solveGyroscopeBias(all_image_frame, Bgs); // 求陀螺仪bias
 
-    if (LinearAlignment(all_image_frame, g, x))
+    if (LinearAlignment(all_image_frame, g, x)) // 初始化速度、重力、尺度
         return true;
     else
         return false;

@@ -24,8 +24,7 @@ struct SFMFeature {
 };
 
 struct ReprojectionError3D {
-    ReprojectionError3D(double observed_u, double observed_v)
-            : observed_u(observed_u), observed_v(observed_v) {}
+    ReprojectionError3D(double observed_u, double observed_v) : observed_u(observed_u), observed_v(observed_v) {}
 
     template<typename T>
     bool operator()(const T *const camera_R, const T *const camera_T, const T *point, T *residuals) const {
@@ -41,11 +40,9 @@ struct ReprojectionError3D {
         return true;
     }
 
-    static ceres::CostFunction *Create(const double observed_x,
-                                       const double observed_y) {
-        return (new ceres::AutoDiffCostFunction<
-                ReprojectionError3D, 2, 4, 3, 3>(
-                new ReprojectionError3D(observed_x, observed_y)));
+    static ceres::CostFunction *Create(const double observed_x, const double observed_y) {
+        // AutoDiffCostFunction<ReprojectionError3D, 2, 4, 3, 3> 对应误差项、旋转、平移、Pw
+        return (new ceres::AutoDiffCostFunction<ReprojectionError3D, 2, 4, 3, 3>(new ReprojectionError3D(observed_x, observed_y)));
     }
 
     double observed_u;
