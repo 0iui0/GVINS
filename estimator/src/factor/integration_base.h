@@ -53,11 +53,9 @@ public:
     void midPointIntegration(double _dt,
                              const Eigen::Vector3d &_acc_0, const Eigen::Vector3d &_gyr_0,
                              const Eigen::Vector3d &_acc_1, const Eigen::Vector3d &_gyr_1,
-                             const Eigen::Vector3d &delta_p, const Eigen::Quaterniond &delta_q,
-                             const Eigen::Vector3d &delta_v,
+                             const Eigen::Vector3d &delta_p, const Eigen::Quaterniond &delta_q, const Eigen::Vector3d &delta_v,
                              const Eigen::Vector3d &linearized_ba, const Eigen::Vector3d &linearized_bg,
-                             Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q,
-                             Eigen::Vector3d &result_delta_v,
+                             Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q, Eigen::Vector3d &result_delta_v,
                              Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg,
                              bool update_jacobian) {
         //ROS_INFO("midpoint integration");
@@ -159,11 +157,8 @@ public:
 
     }
 
-    Eigen::Matrix<double, 15, 1>
-    evaluate(const Eigen::Vector3d &Pi, const Eigen::Quaterniond &Qi, const Eigen::Vector3d &Vi,
-             const Eigen::Vector3d &Bai, const Eigen::Vector3d &Bgi,
-             const Eigen::Vector3d &Pj, const Eigen::Quaterniond &Qj, const Eigen::Vector3d &Vj,
-             const Eigen::Vector3d &Baj, const Eigen::Vector3d &Bgj) {
+    Eigen::Matrix<double, 15, 1> evaluate(const Eigen::Vector3d &Pi, const Eigen::Quaterniond &Qi, const Eigen::Vector3d &Vi, const Eigen::Vector3d &Bai, const Eigen::Vector3d &Bgi,
+                                          const Eigen::Vector3d &Pj, const Eigen::Quaterniond &Qj, const Eigen::Vector3d &Vj, const Eigen::Vector3d &Baj, const Eigen::Vector3d &Bgj) {
         Eigen::Matrix<double, 15, 1> residuals;
 
         Eigen::Matrix3d dp_dba = jacobian.block<3, 3>(O_P, O_BA);

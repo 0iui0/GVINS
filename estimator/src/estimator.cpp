@@ -331,6 +331,7 @@ bool Estimator::initialStructure() {
     //check imu observability
     {
         map<double, ImageFrame>::iterator frame_it;
+        // 1.求滑窗内线加速度的平均值
         Vector3d sum_g;
         for (frame_it = all_image_frame.begin(), frame_it++; frame_it != all_image_frame.end(); frame_it++) {
             double dt = frame_it->second.pre_integration->sum_dt;
@@ -339,6 +340,7 @@ bool Estimator::initialStructure() {
         }
         Vector3d aver_g;
         aver_g = sum_g * 1.0 / ((int) all_image_frame.size() - 1);
+        // 2.求滑窗内线加速度的标准差
         double var = 0;
         for (frame_it = all_image_frame.begin(), frame_it++; frame_it != all_image_frame.end(); frame_it++) {
             double dt = frame_it->second.pre_integration->sum_dt;
@@ -348,6 +350,7 @@ bool Estimator::initialStructure() {
         }
         var = sqrt(var / ((int) all_image_frame.size() - 1));
         //ROS_WARN("IMU variation %f!", var);
+        // 3.判读IMU是否有充分的运动激励
         if (var < 0.25) {
             ROS_INFO("IMU excitation not enough!");
             //return false;
@@ -405,10 +408,11 @@ bool Estimator::initialStructure() {
         if ((frame_it->first) > Headers[i].stamp.toSec()) {
             i++;
         }
+        // IMU系--->i帧的旋转平移
         Matrix3d R_inital = (Q[i].inverse()).toRotationMatrix();
         Vector3d P_inital = -R_inital * T[i];
         cv::eigen2cv(R_inital, tmp_r);
-        cv::Rodrigues(tmp_r, rvec);
+        cv::Rodrigues(tmp_r, rvec); // 罗德里格斯公式旋转矩阵-->旋转向量
         cv::eigen2cv(P_inital, t);
 
         frame_it->second.is_key_frame = false;
